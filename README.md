@@ -132,7 +132,7 @@ pnpm build           # tsdown: ESM, CJS and declarations
 pnpm test:mutation   # Stryker, with a 100% break threshold
 ```
 
-CI also runs `pnpm exec publint` and `pnpm exec attw --pack` after the build.
+CI also runs `pnpm exec publint` and `pnpm exec attw --pack` after the build. It also installs the packed tarball into a scratch project on each supported Node line and both cosmiconfig majors, and loads a config with `extends` through it as ESM and as CommonJS.
 
 Both cosmiconfig majors are installed as dev dependencies under the aliases `cosmiconfig-9` and `cosmiconfig-10`, so `src/interop.integration.test.ts` exercises the loader and transform against each. `test/source` holds tests relocated from the project this package was extracted from, together with the domain they exercise, adapted onto the public API. They are the compatibility check for `extends` semantics.
 
