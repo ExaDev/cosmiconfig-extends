@@ -5,6 +5,7 @@ import type { StandardSchemaV1 } from '@standard-schema/spec';
 import type { Transform } from 'cosmiconfig';
 
 import type { ModuleImporter } from './loader';
+import { installedPackageOf } from './installed-package';
 import { deepMerge, type Merge } from './merge';
 import { validateStandard } from './validate';
 
@@ -85,15 +86,6 @@ function classify(ref: string, key: string, fromFile: string): TrustContext['kin
   return 'package';
 }
 
-const PACKAGE_DIRECTORY = /^.*[/\\]node_modules[/\\]((?:@[^/\\]+[/\\])?[^/\\]+)[/\\]/;
-
-/**
- * The name of the installed package that contains `absolutePath`, taken from the innermost `node_modules` directory in it, or `undefined` for a file outside any `node_modules`.
- */
-function packageOf(absolutePath: string): string | undefined {
-  return PACKAGE_DIRECTORY.exec(absolutePath)?.[1]?.replace('\\', '/');
-}
-
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null && !Array.isArray(value);
 }
@@ -142,8 +134,8 @@ export function createExtendsTransform(options: ExtendsOptions): Transform {
    * A local reference is trusted by its spelling, but where it resolves decides what code runs. Resolved into an installed package other than the one that names it, it is a package load and the predicate is asked about that package by name. Left outside any package by a file that is inside one, it is refused, because nothing names what it reaches.
    */
   function assertStaysInPackage(ref: string, fromFile: string, fromReal: string, resolved: string): void {
-    const owner = packageOf(fromReal);
-    const target = packageOf(resolved);
+    const owner = installedPackageOf(fromReal);
+    const target = installedPackageOf(resolved);
     if (target !== undefined) {
       if (target !== owner) {
         assertTrusted({ ref: target, kind: 'package', fromFile }, ref);
