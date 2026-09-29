@@ -59,6 +59,8 @@ The `Loader` and `Transform` types are identical in cosmiconfig 9 and 10, so the
 
 **`fsCache`** controls jiti's on-disk transpile cache: `true` (the default), `false`, or a directory. The cache is keyed by file content and never serves a stale result. The loader always passes it to jiti explicitly, because jiti otherwise reads the `JITI_FS_CACHE` environment variable.
 
+**Native imports are always off.** jiti's `tryNative` option defaults to on under Bun and follows `JITI_TRY_NATIVE`. A native import ignores `alias` and is served from the runtime's own module cache, so the loader always passes `tryNative: false` and no `JITI_*` variable can change which file is loaded.
+
 **The module cache is always off.** jiti's in-process module cache survives cosmiconfig's `clearCaches()` and `cache: false`, so leaving it on serves a stale config, and stale transitive imports, after a file changes within one process.
 
 ## The `extends` transform
