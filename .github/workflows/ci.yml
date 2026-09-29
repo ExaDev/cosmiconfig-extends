@@ -63,7 +63,8 @@ jobs:
           key: eslintcache-${{ runner.os }}-${{ hashFiles('pnpm-lock.yaml', 'eslint.config.ts') }}
           restore-keys: eslintcache-${{ runner.os }}-
       - run: pnpm install --frozen-lockfile
-      - run: pnpm lint
+      # The check-only script: `pnpm lint` fixes in place, so it would exit 0 on a fixable violation that never reaches the commit.
+      - run: pnpm lint:check
 
   typecheck:
     name: Typecheck
