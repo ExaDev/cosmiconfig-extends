@@ -6,7 +6,7 @@ name: Determine runner
 #
 # The fallback is Blacksmith rather than the action's ubuntu-latest default for the same reason: routing dependent jobs to a pool that cannot start would recreate the deadlock one hop out. The preferred label is the action's default (exadev-runners, the fleet's shared runs-on label), so no `preferred-labels` override is set and routing returns to the fleet whenever the heartbeat is current.
 #
-# The action is pinned to a commit SHA, not a branch: b774d51 is the head of main (the secret-gist design). Bump deliberately when it changes.
+# The action is pinned to a commit SHA, not a branch: b774d51 is the commit that introduced the secret-gist design. Bump deliberately when a newer commit is wanted.
 on:
   workflow_call:
     outputs:
