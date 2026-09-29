@@ -27,7 +27,7 @@ export interface TrustContext {
 }
 
 /**
- * Decides whether a reference may be loaded. Loading a preset evaluates its code, so this is called with the unresolved reference before it is resolved or imported: an untrusted package that is not installed fails as untrusted rather than as module-not-found, and no file system is probed for it. Return `false` for the default refusal message, or throw for a more specific one.
+ * Decides whether a reference may be loaded. Loading a preset evaluates its code, so this is called with the unresolved reference before it is resolved or imported: an untrusted package that is not installed fails as untrusted rather than as module-not-found, and no file system is probed for it. Only the boolean `true` admits a reference: any other return value, including the promise of an asynchronous predicate, refuses it. Return `false` for the default refusal message, or throw for a more specific one.
  */
 export type TrustPredicate = (context: TrustContext) => boolean;
 
@@ -106,7 +106,9 @@ export function createExtendsTransform(options: ExtendsOptions): Transform {
     const layers: unknown[] = [];
     for (const ref of refsOf(layer, extendsKey, fromFile)) {
       const kind = isLocalRef(ref) ? 'local' : 'package';
-      if (!trust({ ref, kind, fromFile })) {
+      // Typed `unknown` because a JavaScript caller can return a non-boolean, and a promise or any truthy value must not admit the reference.
+      const decision: unknown = trust({ ref, kind, fromFile });
+      if (decision !== true) {
         throw new Error(`refusing to load untrusted preset '${ref}' (${kind}) named in ${fromFile}: loading a preset runs its code`);
       }
 
