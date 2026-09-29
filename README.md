@@ -22,7 +22,7 @@ const result = await explorer.search();
 // result?.config is the merged, validated config; result?.filepath is the file that was found.
 ```
 
-`createExplorer` returns a standard cosmiconfig explorer. It registers the jiti loader for `.ts`, `.mts` and `.cts`, and applies `extends` to every result. A config file:
+`createExplorer` returns a standard cosmiconfig explorer. It registers the jiti loader for `.ts`, `.mts` and `.cts`, and applies `extends` to every result. cosmiconfig's default `searchPlaces` list only `.ts`, so `search()` does not find `my-tool.config.mts` or `my-tool.config.cts`: reach those through `load()` or through your own `cosmiconfig.searchPlaces`. A config that exports `undefined` is empty, and `search()` skips it as cosmiconfig skips any empty file. A config file:
 
 ```ts
 // my-tool.config.ts
