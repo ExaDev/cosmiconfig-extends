@@ -1,1 +1,1 @@
-export { defaultExportOf } from './module-namespace';
+export { createJitiLoader, type JitiLoader, type JitiLoaderOptions, type ModuleImporter } from './loader';
