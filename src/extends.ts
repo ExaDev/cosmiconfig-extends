@@ -17,7 +17,7 @@ export interface TrustContext {
    */
   readonly ref: string;
   /**
-   * `local` for a relative or absolute path, `package` for a bare or scoped specifier.
+   * `local` for a relative path, an absolute path or a `file:` URL, `package` for a bare or scoped specifier. A reference that could resolve outside what it appears to name (`.`, `..`, or a package specifier with an empty, `.` or `..` segment) is rejected as invalid before the predicate is asked.
    */
   readonly kind: 'local' | 'package';
   /**
@@ -61,10 +61,28 @@ export interface ExtendsOptions {
   readonly extendsKey?: string;
 }
 
-const LOCAL_REF = /^\.{1,2}(?:[/\\]|$)/;
+const LOCAL_REF = /^\.{1,2}[/\\]/;
+const FILE_URL_SCHEME = 'file:';
+const PATH_SEPARATOR = /[/\\]/;
+const DIRECTORY_REF = /^\.{1,2}$/;
 
-function isLocalRef(ref: string): boolean {
-  return LOCAL_REF.test(ref) || isAbsolute(ref);
+/**
+ * Classify a reference, rejecting spellings whose meaning depends on how a resolver reads them. `.` and `..` name a directory, not a file. A package specifier with an empty, `.` or `..` segment would resolve outside the package or scope it appears to name (`@scope/../other` loads `other`), so a predicate that checks the text could admit a different package.
+ */
+function classify(ref: string, key: string, fromFile: string): TrustContext['kind'] {
+  if (DIRECTORY_REF.test(ref)) {
+    throw new TypeError(`invalid ${key} '${ref}' in ${fromFile}: it names a directory, not a file`);
+  }
+
+  if (LOCAL_REF.test(ref) || ref.startsWith(FILE_URL_SCHEME) || isAbsolute(ref)) {
+    return 'local';
+  }
+
+  if (ref.split(PATH_SEPARATOR).some((segment) => segment === '' || segment === '.' || segment === '..')) {
+    throw new TypeError(`invalid ${key} '${ref}' in ${fromFile}: a package specifier must not contain an empty or dot segment`);
+  }
+
+  return 'package';
 }
 
 function isRecord(value: unknown): value is Record<string, unknown> {
@@ -105,7 +123,7 @@ export function createExtendsTransform(options: ExtendsOptions): Transform {
   async function layersFor(layer: unknown, fromFile: string, loading: readonly string[]): Promise<readonly unknown[]> {
     const layers: unknown[] = [];
     for (const ref of refsOf(layer, extendsKey, fromFile)) {
-      const kind = isLocalRef(ref) ? 'local' : 'package';
+      const kind = classify(ref, extendsKey, fromFile);
       // Typed `unknown` because a JavaScript caller can return a non-boolean, and a promise or any truthy value must not admit the reference.
       const decision: unknown = trust({ ref, kind, fromFile });
       if (decision !== true) {
