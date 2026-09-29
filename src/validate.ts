@@ -28,7 +28,7 @@ function formatIssue({ path, message }: ConfigValidationIssue): string {
 }
 
 /**
- * Thrown when a value fails Standard Schema validation. It carries only normalised `{ path, message }` entries: a validator's raw issues can embed the input value, which may be a config containing secrets, so they are never retained.
+ * Thrown when a value fails Standard Schema validation. It carries normalised `{ path, message }` entries and keeps no raw validator issues. Each `message` is the validator's own text, unchanged, and some validators quote the received value in it (valibot's defaults do), so the error message can contain a value from the config. Do not log it where a secret in the config must not appear, or use messages that omit the input.
  */
 export class ConfigValidationError extends Error {
   readonly issues: readonly ConfigValidationIssue[];

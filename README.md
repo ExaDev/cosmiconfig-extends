@@ -104,7 +104,7 @@ This one unions top-level arrays only. Recurse into objects yourself if nested a
 
 ### Validation
 
-`presetSchema` and `schema` accept any [Standard Schema](https://standardschema.dev) implementation (zod, valibot, ArkType and others) and are awaited, so asynchronous validators work. A failure throws `ConfigValidationError`, whose `issues` are normalised `{ path, message }` entries with a path of strings and numbers. The error keeps no raw validator issues, because those can embed the input value.
+`presetSchema` and `schema` accept any [Standard Schema](https://standardschema.dev) implementation (zod, valibot, ArkType and others) and are awaited, so asynchronous validators work. A failure throws `ConfigValidationError`, whose `issues` are normalised `{ path, message }` entries with a path of strings and numbers. The error keeps no raw validator issues, but each `message` is the validator's own text and some validators quote the received value in it (valibot's defaults do, zod's do not), so a secret in a config can appear in the error message and in `issues`. Configure the validator's messages, or keep the error out of logs, where that matters.
 
 `validateStandard(schema, value, source)` is exported for validating anything else the same way.
 
