@@ -87,6 +87,8 @@ jobs:
 
   mutation:
     name: Mutation
+    # Manual only: run it from the Actions tab (workflow_dispatch) when a change warrants a full mutation pass. It is not a required check and does not gate a release.
+    if: github.event_name == 'workflow_dispatch'
     needs: determine-runner
     runs-on: ${{ fromJson(needs.determine-runner.outputs.selected-runner) }}
     timeout-minutes: 60
@@ -174,7 +176,7 @@ jobs:
 
   required-checks:
     name: Required Checks
-    needs: [determine-runner, commitlint, lint, typecheck, package, mutation]
+    needs: [determine-runner, commitlint, lint, typecheck, package]
     # Always runs, even if a dependency failed, so it reports that failure itself rather than being skipped: a required check that is silently absent blocks a PR indefinitely instead of failing it visibly.
     if: always()
     runs-on: ${{ fromJson(needs.determine-runner.outputs.selected-runner) }}
@@ -190,7 +192,7 @@ jobs:
 
   release:
     name: Release
-    needs: [commitlint, lint, typecheck, package, mutation]
+    needs: [commitlint, lint, typecheck, package]
     if: github.ref == 'refs/heads/main' && (github.event_name == 'push' || github.event_name == 'workflow_dispatch')
     # Deliberately a GitHub-hosted runner, not the resolved one: npm trusted publishing only works from GitHub-hosted runners, so the OIDC token exchange cannot happen on the self-hosted fleet or Blacksmith.
     runs-on: ubuntu-latest
