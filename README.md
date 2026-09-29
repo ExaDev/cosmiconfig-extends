@@ -129,7 +129,7 @@ pnpm lint:check      # eslint, check only; what CI runs
 pnpm typecheck
 pnpm test            # vitest, with coverage
 pnpm build           # tsdown: ESM, CJS and declarations
-pnpm test:mutation   # Stryker, with a 100% break threshold
+pnpm test:mutation   # Stryker, with a 100% break threshold; CI runs it on manual dispatch only
 ```
 
 CI also runs `pnpm exec publint` and `pnpm exec attw --pack` after the build. It also installs the packed tarball into a scratch project on each supported Node line and both cosmiconfig majors, and loads a config with `extends` through it as ESM and as CommonJS.
