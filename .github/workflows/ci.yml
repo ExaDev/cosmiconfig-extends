@@ -115,9 +115,66 @@ jobs:
           path: reports/stryker-incremental.json
           key: stryker-incremental-${{ github.run_id }}
 
+  # The packed tarball, not the source tree, is what consumers install: this proves the published files, exports map and peer dependency work in a clean project on every Node line the package supports and on both cosmiconfig majors. The toolchain needs Node 22, so the package is built and packed on 22 and the consumer check runs on the Node under test.
+  package:
+    name: Package (Node ${{ matrix.node }}, cosmiconfig ${{ matrix.cosmiconfig }})
+    needs: determine-runner
+    runs-on: ${{ fromJson(needs.determine-runner.outputs.selected-runner) }}
+    timeout-minutes: 15
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - { node: '20', cosmiconfig: '9' }
+          - { node: '22', cosmiconfig: '9' }
+          - { node: '22', cosmiconfig: '10' }
+          - { node: '24', cosmiconfig: '9' }
+          - { node: '24', cosmiconfig: '10' }
+    steps:
+      - uses: actions/checkout@v7
+      - uses: pnpm/action-setup@v6
+      - uses: actions/setup-node@v7
+        with:
+          node-version: '22'
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm build
+      - run: pnpm pack --pack-destination "$RUNNER_TEMP/pack"
+      - uses: actions/setup-node@v7
+        with:
+          node-version: ${{ matrix.node }}
+      - name: Install the tarball into a scratch project
+        run: |
+          mkdir "$RUNNER_TEMP/scratch"
+          cd "$RUNNER_TEMP/scratch"
+          npm init -y
+          npm install "$RUNNER_TEMP"/pack/*.tgz "cosmiconfig@${{ matrix.cosmiconfig }}"
+      - name: Load a config with extends through the installed package, as ESM and as CommonJS
+        working-directory: ${{ runner.temp }}/scratch
+        run: |
+          printf 'export default { a: "base", b: "base" };\n' > base.ts
+          printf 'export default { extends: "./base.ts", b: "config" };\n' > my-tool.config.ts
+          cat > check.mjs <<'EOF'
+          import assert from 'node:assert/strict';
+          import { createExplorer } from 'cosmiconfig-extends';
+
+          const result = await createExplorer('my-tool').search(process.cwd());
+          assert.deepEqual(result?.config, { a: 'base', b: 'config' });
+          EOF
+          cat > check.cjs <<'EOF'
+          const assert = require('node:assert/strict');
+          const { createExplorer } = require('cosmiconfig-extends');
+
+          createExplorer('my-tool')
+            .search(process.cwd())
+            .then((result) => assert.deepEqual(result?.config, { a: 'base', b: 'config' }));
+          EOF
+          node check.mjs
+          node check.cjs
+
   required-checks:
     name: Required Checks
-    needs: [determine-runner, commitlint, lint, typecheck, mutation]
+    needs: [determine-runner, commitlint, lint, typecheck, package, mutation]
     # Always runs, even if a dependency failed, so it reports that failure itself rather than being skipped: a required check that is silently absent blocks a PR indefinitely instead of failing it visibly.
     if: always()
     runs-on: ${{ fromJson(needs.determine-runner.outputs.selected-runner) }}
@@ -133,7 +190,7 @@ jobs:
 
   release:
     name: Release
-    needs: [commitlint, lint, typecheck, mutation]
+    needs: [commitlint, lint, typecheck, package, mutation]
     if: github.ref == 'refs/heads/main' && (github.event_name == 'push' || github.event_name == 'workflow_dispatch')
     # Deliberately a GitHub-hosted runner, not the resolved one: npm trusted publishing only works from GitHub-hosted runners, so the OIDC token exchange cannot happen on the self-hosted fleet or Blacksmith.
     runs-on: ubuntu-latest
