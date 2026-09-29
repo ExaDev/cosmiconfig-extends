@@ -115,6 +115,7 @@ Requires Node 22 or later for the toolchain and pnpm. The published package supp
 ```sh
 pnpm install
 pnpm lint            # eslint, with --fix
+pnpm lint:check      # eslint, check only; what CI runs
 pnpm typecheck
 pnpm test            # vitest, with coverage
 pnpm build           # tsdown: ESM, CJS and declarations
