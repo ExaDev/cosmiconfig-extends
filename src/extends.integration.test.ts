@@ -235,6 +235,13 @@ describe('createExtendsTransform', () => {
       expect(await transformFor({ trust: ({ ref }) => ref === 'allowed' })(root, { extends: 'allowed' })).toEqual({ v: 'allowed' });
     });
 
+    it('refuses when the predicate returns anything but true, such as the promise of an asynchronous one', async () => {
+      const root = makeProject({ 'a.ts': preset("{ v: 'a' }") });
+      const asynchronous = vi.fn().mockResolvedValue(false);
+
+      await expect(transformFor({ trust: asynchronous })(root, { extends: './a.ts' })).rejects.toThrow(/refusing to load untrusted preset/);
+    });
+
     it('lets the predicate throw its own message', async () => {
       const root = makeProject();
       const trust = ({ ref }: TrustContext): boolean => {
