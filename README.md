@@ -61,7 +61,9 @@ The `Loader` and `Transform` types are identical in cosmiconfig 9 and 10, so the
 
 **Native imports are always off.** jiti's `tryNative` option defaults to on under Bun and follows `JITI_TRY_NATIVE`. A native import ignores `alias` and is served from the runtime's own module cache, so the loader always passes `tryNative: false` and no `JITI_*` variable can change which file is loaded.
 
-**The module cache is always off.** jiti's in-process module cache survives cosmiconfig's `clearCaches()` and `cache: false`, so leaving it on serves a stale config, and stale transitive imports, after a file changes within one process.
+**The module cache is always off.** jiti's in-process module cache survives cosmiconfig's `clearCaches()` and `cache: false`, so leaving it on serves a stale config after a file changes within one process. The loader turns it off, and additionally reads and evaluates every config and preset file it is asked for afresh, whatever its format (`.ts`, `.mjs`, `.cjs`, `.js`, `.json`): jiti hands `.mjs`, `.cjs` and `.js` files to the runtime's own module cache, which nothing can clear, so a JavaScript preset would otherwise stay stale.
+
+The freshness covers the file itself and the TypeScript it imports. A JavaScript module imported by a config or preset, and any module in `node_modules`, is loaded by the runtime and stays cached for the life of the process, even after `clearCaches()`.
 
 ## The `extends` transform
 

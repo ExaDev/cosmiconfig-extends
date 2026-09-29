@@ -1,5 +1,5 @@
-import { statSync } from 'node:fs';
-import { dirname, isAbsolute } from 'node:path';
+import { readFileSync, statSync } from 'node:fs';
+import { dirname, extname, isAbsolute } from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 
 import type { Loader } from 'cosmiconfig';
@@ -30,7 +30,7 @@ export interface ModuleImporter {
    */
   resolve: (ref: string, fromDir: string) => string;
   /**
-   * Evaluate the module at `absolutePath` and return its default export.
+   * Evaluate the module at `absolutePath` and return its default export. The file is read and evaluated afresh on every call, whatever its format: JSON is parsed, and every other format is transpiled by jiti (which jiti would otherwise hand to the runtime's own module cache for `.mjs`, `.cjs` and `.js`). Modules that file imports are fresh only if jiti transpiles them, which excludes JavaScript modules and packages in `node_modules`.
    */
   importDefault: (absolutePath: string) => Promise<unknown>;
 }
@@ -57,7 +57,7 @@ function assertAliasTargetsAreDirectories(alias: Readonly<Record<string, string>
 /**
  * Create a jiti-backed cosmiconfig loader.
  *
- * Every jiti option that affects which file is loaded or whether it is fresh is passed explicitly, so no `JITI_*` environment variable can change the result. `moduleCache` is `false`: jiti's in-process module cache survives cosmiconfig's `clearCaches()` and `cache: false`, so leaving it on serves a stale config, and stale transitive imports, after a file changes within one process. `tryNative` is `false`: jiti turns it on by default under Bun and from `JITI_TRY_NATIVE`, and a native import ignores the aliases and is served from the runtime's own module cache.
+ * Every jiti option that affects which file is loaded or whether it is fresh is passed explicitly, so no `JITI_*` environment variable can change the result. `moduleCache` is `false`: jiti's in-process module cache survives cosmiconfig's `clearCaches()` and `cache: false`, so leaving it on serves a stale config, and stale transitive imports, after a file changes within one process. That option only affects modules jiti transpiles, so {@link ModuleImporter.importDefault} also evaluates the requested file itself afresh; JavaScript modules and packages that a file imports are loaded natively by the runtime and stay cached. `tryNative` is `false`: jiti turns it on by default under Bun and from `JITI_TRY_NATIVE`, and a native import ignores the aliases and is served from the runtime's own module cache.
  */
 export function createJitiLoader(options: JitiLoaderOptions = {}): JitiLoader {
   const { alias, fsCache = true } = options;
@@ -73,8 +73,19 @@ export function createJitiLoader(options: JitiLoaderOptions = {}): JitiLoader {
       tryNative: false,
     });
 
-  const importDefault = async (absolutePath: string): Promise<unknown> =>
-    defaultExportOf(await jitiFor(dirname(absolutePath)).import(absolutePath));
+  const importDefault = async (absolutePath: string): Promise<unknown> => {
+    const source = readFileSync(absolutePath, 'utf8');
+    const ext = extname(absolutePath);
+    if (ext === '.json') {
+      const parsed: unknown = JSON.parse(source);
+
+      return parsed;
+    }
+
+    return defaultExportOf(
+      await jitiFor(dirname(absolutePath)).evalModule(source, { filename: absolutePath, ext, async: true, forceTranspile: true }),
+    );
+  };
 
   return {
     loader: async (filepath) => importDefault(filepath),

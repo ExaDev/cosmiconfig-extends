@@ -100,6 +100,29 @@ describe('createJitiLoader', () => {
     });
   });
 
+  describe('module formats', () => {
+    const formats: readonly (readonly [string, string, (value: string) => string])[] = [
+      ['.ts', 'module', (value) => `export default { value: '${value}' };\n`],
+      ['.mjs', 'module', (value) => `export default { value: '${value}' };\n`],
+      ['.js', 'module', (value) => `export default { value: '${value}' };\n`],
+      ['.js', 'commonjs', (value) => `module.exports = { value: '${value}' };\n`],
+      ['.cjs', 'module', (value) => `module.exports = { value: '${value}' };\n`],
+      ['.json', 'module', (value) => JSON.stringify({ value })],
+    ];
+
+    it.each(formats)('re-evaluates a rewritten %s file in a %s package', async (extension, type, body) => {
+      const file = `preset${extension}`;
+      const root = makeProject({ 'package.json': JSON.stringify({ type }), [file]: body('one') });
+      const { importer } = createJitiLoader();
+
+      expect(await importer.importDefault(join(root, file))).toEqual({ value: 'one' });
+
+      writeProjectFile(root, file, body('two'));
+
+      expect(await importer.importDefault(join(root, file))).toEqual({ value: 'two' });
+    });
+  });
+
   describe('environment', () => {
     afterEach(() => {
       vi.unstubAllEnvs();
