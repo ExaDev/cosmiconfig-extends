@@ -57,7 +57,7 @@ function assertAliasTargetsAreDirectories(alias: Readonly<Record<string, string>
 /**
  * Create a jiti-backed cosmiconfig loader.
  *
- * `moduleCache` is always `false`: jiti's in-process module cache survives cosmiconfig's `clearCaches()` and `cache: false`, so leaving it on serves a stale config, and stale transitive imports, after a file changes within one process.
+ * Every jiti option that affects which file is loaded or whether it is fresh is passed explicitly, so no `JITI_*` environment variable can change the result. `moduleCache` is `false`: jiti's in-process module cache survives cosmiconfig's `clearCaches()` and `cache: false`, so leaving it on serves a stale config, and stale transitive imports, after a file changes within one process. `tryNative` is `false`: jiti turns it on by default under Bun and from `JITI_TRY_NATIVE`, and a native import ignores the aliases and is served from the runtime's own module cache.
  */
 export function createJitiLoader(options: JitiLoaderOptions = {}): JitiLoader {
   const { alias, fsCache = true } = options;
@@ -70,6 +70,7 @@ export function createJitiLoader(options: JitiLoaderOptions = {}): JitiLoader {
       alias: { ...alias },
       fsCache,
       moduleCache: false,
+      tryNative: false,
     });
 
   const importDefault = async (absolutePath: string): Promise<unknown> =>

@@ -1,7 +1,7 @@
 import { existsSync, readdirSync } from 'node:fs';
 import { join } from 'node:path';
 
-import { describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import { makeProject, writeProjectFile } from '../test/support/project';
 
@@ -97,6 +97,32 @@ describe('createJitiLoader', () => {
       writeProjectFile(root, 'dep.ts', "export const dep = 'two';\n");
 
       expect(await loader(file, '')).toBe('two');
+    });
+  });
+
+  describe('environment', () => {
+    afterEach(() => {
+      vi.unstubAllEnvs();
+    });
+
+    it('keeps aliases and fresh reloads when JITI_TRY_NATIVE asks for native imports', async () => {
+      vi.stubEnv('JITI_TRY_NATIVE', 'true');
+      const root = makeProject({
+        'lib/index.ts': "export const WHO = 'barrel';\n",
+        'node_modules/my-tool/package.json': JSON.stringify({ name: 'my-tool', main: 'index.js', type: 'module' }),
+        'node_modules/my-tool/index.js': "export const WHO = 'decoy';\n",
+        'package.json': JSON.stringify({ type: 'module' }),
+        'dep.ts': "export const dep = 'one';\n",
+        'config.ts': "import { WHO } from 'my-tool';\nimport { dep } from './dep.ts';\nexport default { WHO, dep };\n",
+      });
+      const { importer } = createJitiLoader({ alias: { 'my-tool': join(root, 'lib') } });
+      const file = join(root, 'config.ts');
+
+      expect(await importer.importDefault(file)).toEqual({ WHO: 'barrel', dep: 'one' });
+
+      writeProjectFile(root, 'dep.ts', "export const dep = 'two';\n");
+
+      expect(await importer.importDefault(file)).toEqual({ WHO: 'barrel', dep: 'two' });
     });
   });
 
