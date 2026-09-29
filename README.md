@@ -5,10 +5,10 @@ A jiti-backed TypeScript loader and a trust-gated `extends` transform for [cosmi
 ## Getting started
 
 ```sh
-pnpm add cosmiconfig-extends cosmiconfig
+pnpm add cosmiconfig-extends cosmiconfig zod
 ```
 
-`cosmiconfig` is a peer dependency (`^9.0.0 || ^10.0.0`). The package supports Node 20 and later. cosmiconfig 10 itself declares Node `^22.18 || >=24`, so a consumer on an older Node sees an engines warning from cosmiconfig, not from this package. Only cosmiconfig's own default `.ts` loading depends on that Node version, and this package replaces it.
+`zod` is only for the example below: `schema` and `presetSchema` accept any [Standard Schema](https://standardschema.dev) library. `cosmiconfig` is a peer dependency (`^9.0.0 || ^10.0.0`). The package supports Node 20 and later. cosmiconfig 10 itself declares Node `^22.18 || >=24`, so a consumer on an older Node sees an engines warning from cosmiconfig, not from this package. Only cosmiconfig's own default `.ts` loading depends on that Node version, and this package replaces it.
 
 ```ts
 import { createExplorer } from 'cosmiconfig-extends';
@@ -80,6 +80,12 @@ For each reference in `extends` (a string or an array), in order:
 The layers are then folded through `merge`, deepest base first and the config itself last, so a preset supplies defaults and the config overrides them. The `extends` key is removed from every layer. With `schema`, the merged result is validated and the schema output, including its defaults, replaces the config.
 
 `extendsKey` changes the key the transform reads.
+
+### Trust
+
+A trust decision on a package is by name only. The same allowed name can resolve to a different installed copy depending on hoisting and on which file names it, because a package reference resolves from the directory of the file that names it, and the predicate sees the name, never the path. Allow only names whose every installed copy you would run.
+
+`extends` runs code whatever format the config is in. A JSON, YAML or `package.json` config that the explorer finds can still name a local path in `extends`, and the default policy trusts local paths, so loading such a config can evaluate a TypeScript or JavaScript file. A data-format config is not inert: refuse local paths in `trust` too if you must load configs you do not control.
 
 ### Merging
 

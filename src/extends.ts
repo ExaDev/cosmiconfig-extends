@@ -27,7 +27,7 @@ export interface TrustContext {
 }
 
 /**
- * Decides whether a reference may be loaded. Loading a preset evaluates its code, so this is called with the reference before it is resolved or imported: an untrusted package that is not installed fails as untrusted rather than as module-not-found, and no file system is probed for it. Only the boolean `true` admits a reference: any other return value, including the promise of an asynchronous predicate, refuses it. Return `false` for the default refusal message, or throw for a more specific one.
+ * Decides whether a reference may be loaded. Loading a preset evaluates its code, so this is called with the reference before it is resolved or imported: an untrusted package that is not installed fails as untrusted rather than as module-not-found, and no file system is probed for it. A decision on a package is by name only: the same name can resolve to a different installed copy depending on hoisting and on which file names it, since a reference resolves from the directory of the file that names it, and the predicate never sees the resolved path. Only the boolean `true` admits a reference: any other return value, including the promise of an asynchronous predicate, refuses it. Return `false` for the default refusal message, or throw for a more specific one.
  */
 export type TrustPredicate = (context: TrustContext) => boolean;
 
