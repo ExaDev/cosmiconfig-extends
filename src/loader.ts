@@ -67,7 +67,7 @@ export function createJitiLoader(options: JitiLoaderOptions = {}): JitiLoader {
 
   const jitiFor = (dir: string) =>
     createJiti(pathToFileURL(`${dir}/`).href, {
-      ...(alias === undefined ? {} : { alias: { ...alias } }),
+      alias: { ...alias },
       fsCache,
       moduleCache: false,
     });
@@ -78,7 +78,7 @@ export function createJitiLoader(options: JitiLoaderOptions = {}): JitiLoader {
   return {
     loader: async (filepath) => importDefault(filepath),
     importer: {
-      resolve: (ref, fromDir) => fileURLToPath(jitiFor(fromDir).esmResolve(ref, pathToFileURL(`${fromDir}/`).href)),
+      resolve: (ref, fromDir) => fileURLToPath(jitiFor(fromDir).esmResolve(ref)),
       importDefault,
     },
   };
