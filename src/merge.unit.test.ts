@@ -51,6 +51,41 @@ describe('deepMerge', () => {
     expect(override).toEqual({ a: { y: 'override' } });
   });
 
+  describe('values that are not plain objects', () => {
+    function valueAt(container: unknown, key: string): unknown {
+      return typeof container === 'object' && container !== null ? Reflect.get(container, key) : undefined;
+    }
+
+    class Logger {
+      constructor(readonly level: string) {}
+
+      describe(): string {
+        return this.level;
+      }
+    }
+
+    it.each([
+      ['a Date', new Date(1), new Date(2)],
+      ['a RegExp', /a/u, /b/u],
+      ['a Map', new Map([['a', 1]]), new Map([['b', 2]])],
+      ['a Set', new Set([1]), new Set([2])],
+      ['a class instance', new Logger('info'), new Logger('debug')],
+    ])('replaces %s with the override instead of rebuilding it', (_name, base, override) => {
+      expect(valueAt(deepMerge({ key: base }, { key: override }), 'key')).toBe(override);
+    });
+
+    it('replaces a plain object with a class instance, keeping its prototype', () => {
+      expect(valueAt(deepMerge({ logger: { level: 'info' } }, { logger: new Logger('debug') }), 'logger')).toBeInstanceOf(Logger);
+    });
+
+    it('merges plain objects with a null prototype', () => {
+      const base: unknown = Object.setPrototypeOf({ a: 1 }, null);
+      const override: unknown = Object.setPrototypeOf({ b: 2 }, null);
+
+      expect(deepMerge(base, override)).toEqual({ a: 1, b: 2 });
+    });
+  });
+
   it('keeps a __proto__ key as ordinary data instead of changing a prototype', () => {
     const hostile: unknown = JSON.parse('{"__proto__":{"polluted":"yes"}}');
     const merged = deepMerge({}, hostile);
