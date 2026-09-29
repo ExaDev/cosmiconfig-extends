@@ -83,7 +83,7 @@ The layers are then folded through `merge`, deepest base first and the config it
 
 ### Merging
 
-`merge` is a pairwise function `(base, override) => merged`, called with `{}` as the first base. The default, `deepMerge`, merges plain objects key by key, replaces arrays and scalars, and never lets `undefined` override a value. It builds result objects from own data properties, so a `__proto__` key in a layer stays ordinary data.
+`merge` is a pairwise function `(base, override) => merged`, called with `{}` as the first base. The default, `deepMerge`, merges plain objects (object literals, `Object.create(null)`, parsed JSON) key by key, replaces every other value (arrays, scalars, dates, regular expressions, maps, sets and class instances, which it never rebuilds), and never lets `undefined` override a value. It builds result objects from own data properties, so a `__proto__` key in a layer stays ordinary data.
 
 Arrays replace by default. To combine them, pass your own `merge`:
 
