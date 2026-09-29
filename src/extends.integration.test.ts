@@ -167,6 +167,10 @@ describe('createExtendsTransform', () => {
       });
     });
 
+    it('passes a null config through', async () => {
+      expect(await transformFor()(makeProject(), null)).toBeNull();
+    });
+
     it('merges a config that is not an object as the override', async () => {
       const root = makeProject();
 
@@ -237,6 +241,8 @@ describe('createExtendsTransform', () => {
       ['pkg/sub/path', 'package'],
       ['.hidden-package', 'package'],
       ['..two-dots-package', 'package'],
+      ['pkg/../escape', 'package'],
+      ['pkg/..', 'package'],
     ] as const)('classifies %s as %s', async (ref, kind) => {
       const contexts: TrustContext[] = [];
       const trust = (context: TrustContext) => {
@@ -327,6 +333,14 @@ describe('createExtendsTransform', () => {
 
       await expect(transformFor()(root, { extends: './a.ts' })).rejects.toThrow("preset './a.ts' is not an object");
       await expect(transformFor()(root, { extends: './list.ts' })).rejects.toThrow("preset './list.ts' is not an object");
+    });
+
+    it('rejects a null preset, which an importer other than jiti can return', async () => {
+      const importer = { resolve: () => '/x/null.ts', importDefault: async () => Promise.resolve(null) };
+
+      await expect(createExtendsTransform({ importer })({ config: { extends: './null.ts' }, filepath: '/x/config.ts' })).rejects.toThrow(
+        "preset './null.ts' is not an object",
+      );
     });
 
     it('validates the effective config, applies its defaults and names the file on failure', async () => {
