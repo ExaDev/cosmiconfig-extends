@@ -1,6 +1,7 @@
 import { mkdtempSync, realpathSync, symlinkSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
+import { pathToFileURL } from 'node:url';
 
 import type { CosmiconfigResult } from 'cosmiconfig';
 import { describe, expect, it, vi } from 'vitest';
@@ -254,16 +255,14 @@ describe('createExtendsTransform', () => {
     it.each([
       ['./local.ts', 'local'],
       ['../up.ts', 'local'],
-      ['.', 'local'],
-      ['..', 'local'],
+      ['.\\win.ts', 'local'],
       ['/abs/path.ts', 'local'],
+      ['file:///abs/path.ts', 'local'],
       ['pkg', 'package'],
       ['@scope/pkg', 'package'],
       ['pkg/sub/path', 'package'],
       ['.hidden-package', 'package'],
       ['..two-dots-package', 'package'],
-      ['pkg/../escape', 'package'],
-      ['pkg/..', 'package'],
     ] as const)('classifies %s as %s', async (ref, kind) => {
       const contexts: TrustContext[] = [];
       const trust = (context: TrustContext) => {
@@ -275,6 +274,39 @@ describe('createExtendsTransform', () => {
       await transformFor({ trust })(root, { extends: ref }).catch(() => undefined);
 
       expect(contexts).toEqual([{ ref, kind, fromFile: join(root, 'config.ts') }]);
+    });
+
+    it('admits a file URL to a local file under the default policy', async () => {
+      const root = makeProject({ 'base.ts': preset("{ v: 'base' }") });
+
+      expect(await transformFor()(root, { extends: pathToFileURL(join(root, 'base.ts')).href })).toEqual({ v: 'base' });
+    });
+
+    it.each([
+      ['.', /names a directory/],
+      ['..', /names a directory/],
+      ['pkg/../escape', /empty or dot segment/],
+      ['pkg/..', /empty or dot segment/],
+      ['pkg/./sub', /empty or dot segment/],
+      ['pkg//sub', /empty or dot segment/],
+      ['pkg\\..\\escape', /empty or dot segment/],
+      ['@my-tool/../evil-preset/index.ts', /empty or dot segment/],
+      ['@my-tool/real/../../evil-preset/index.ts', /empty or dot segment/],
+    ])('rejects %s as an invalid reference before asking the predicate', async (ref, message) => {
+      const trust = vi.fn().mockReturnValue(true);
+
+      await expect(transformFor({ trust })(makeProject(), { extends: ref })).rejects.toThrow(message);
+      expect(trust).not.toHaveBeenCalled();
+    });
+
+    it('does not let a scope-prefix predicate admit a specifier that climbs out of the scope', async () => {
+      const root = makeProject({
+        'node_modules/evil-preset/package.json': JSON.stringify({ name: 'evil-preset', type: 'module', main: 'index.js' }),
+        'node_modules/evil-preset/index.js': "export default { evil: true };\n",
+      });
+      const trust = ({ ref, kind }: TrustContext) => kind === 'local' || ref.startsWith('@my-tool/');
+
+      await expect(transformFor({ trust })(root, { extends: '@my-tool/real/../../evil-preset/index.js' })).rejects.toThrow(/empty or dot segment/);
     });
   });
 
