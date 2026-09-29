@@ -10,7 +10,7 @@ export default defineConfig(
       'node_modules',
       'reports',
       '.stryker-tmp',
-      // Files relocated byte for byte from the source project (its tests, and the domain modules they exercise). They are kept verbatim so any drift from the original shows as a diff, which their formatting and naming would not survive `eslint --fix`.
+      // Files relocated from the source project (its tests, and the domain modules they exercise), unchanged apart from renaming its domain terms to neutral ones. They are kept as relocated so any drift from the original shows as a diff, which their formatting and naming would not survive `eslint --fix`.
       'test/source/intent/*.test.ts',
       'test/source/intent/config.ts',
       'test/source/intent/preset.ts',
