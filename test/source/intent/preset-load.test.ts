@@ -144,7 +144,7 @@ describe('resolveEffectiveConfig', { timeout: 20000 }, async () => {
     writeLocalPreset(
       repoDir,
       'presets/derived.ts',
-      `{ extends: './presets/base.ts', packageManager: 'yarn', capabilities: { test: '@exadev/vitest' } }`,
+      `{ extends: './base.ts', packageManager: 'yarn', capabilities: { test: '@exadev/vitest' } }`,
     )
 
     const config = await resolveEffectiveConfig({
@@ -179,8 +179,8 @@ describe('resolveEffectiveConfig', { timeout: 20000 }, async () => {
 
   it('rejects an extends cycle', async () => {
     const repoDir = mkdtempSync(join(tmpdir(), 'exadev-preset-'))
-    writeLocalPreset(repoDir, 'presets/a.ts', `{ extends: './presets/b.ts', schema: 'valibot' }`)
-    writeLocalPreset(repoDir, 'presets/b.ts', `{ extends: './presets/a.ts', schema: 'arktype' }`)
+    writeLocalPreset(repoDir, 'presets/a.ts', `{ extends: './b.ts', schema: 'valibot' }`)
+    writeLocalPreset(repoDir, 'presets/b.ts', `{ extends: './a.ts', schema: 'arktype' }`)
 
     await expect(
       resolveEffectiveConfig({
