@@ -8,7 +8,7 @@
 // fetched, and an explicit trust decision before the module is loaded.
 //
 // The trust gate is the boundary the discovery/loading path consults before a
-// provider is loaded. First-party (@exadev/*), `self`, and local-path providers
+// provider is loaded. First-party (@my-tool/*), `self`, and local-path providers
 // are trusted by default; everything else is untrusted unless explicitly
 // allowlisted. The decision states plainly that adding a provider runs code, so
 // the CLI can surface it rather than hiding it.
@@ -18,10 +18,10 @@
 // policy is the CLI's job, expressed through the policy this module returns.
 
 /**
- * The scope prefix that marks a first-party @exadev provider package. A package
+ * The scope prefix that marks a first-party @my-tool provider package. A package
  * specifier under this scope is trusted by default.
  */
-const FIRST_PARTY_SCOPE = '@exadev/'
+const FIRST_PARTY_SCOPE = '@my-tool/'
 
 /**
  * The literal binding meaning the developer implements the port themselves. No
@@ -33,7 +33,7 @@ const SELF_REF = 'self'
  * Where a provider reference comes from, which determines its default trust.
  *
  * - `self`        — the developer implements the port; no external code loaded.
- * - `first-party` — an @exadev/* package the tool's authors maintain.
+ * - `first-party` — an @my-tool/* package the tool's authors maintain.
  * - `local`       — a relative-path provider inside the developer's own repo.
  * - `third-party` — any other package specifier; untrusted by default.
  */
@@ -42,7 +42,7 @@ export type ProviderOrigin = 'self' | 'first-party' | 'local' | 'third-party'
 /**
  * Classify where a provider reference comes from. Pure string inspection.
  *
- * A reference is one of: the `self` literal, an @exadev/* package, a relative
+ * A reference is one of: the `self` literal, an @my-tool/* package, a relative
  * path ('./' or '../'), or any other package specifier (third-party).
  */
 export function providerOrigin(ref: string): ProviderOrigin {

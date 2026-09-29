@@ -8,7 +8,7 @@ import { resolveEffectiveConfig } from './preset-load.js'
 
 /**
  * Write a definePreset module to `relPath` under `repoDir`. The module imports
- * @exadev/core by the workspace source path so jiti resolves it from the temp
+ * @my-tool/core by the workspace source path so jiti resolves it from the temp
  * dir without a node_modules install, exactly as the provider loader test does.
  * `body` is the object literal passed to definePreset.
  */
@@ -29,8 +29,8 @@ function writeLocalPreset(repoDir: string, relPath: string, body: string): void 
 
 /**
  * Write a definePreset module that imports definePreset from the BARE
- * '@exadev/core' specifier — the real-preset case. With no node_modules in the
- * temp repo, this loads ONLY if the authoring-jiti alias resolves '@exadev/core'
+ * '@my-tool/core' specifier — the real-preset case. With no node_modules in the
+ * temp repo, this loads ONLY if the authoring-jiti alias resolves '@my-tool/core'
  * to the engine barrel. It does not, then jiti throws and the test fails.
  */
 function writeBareSpecifierPreset(repoDir: string, relPath: string, body: string): void {
@@ -39,7 +39,7 @@ function writeBareSpecifierPreset(repoDir: string, relPath: string, body: string
   writeFileSync(
     full,
     [
-      `import { definePreset } from '@exadev/core'`,
+      `import { definePreset } from '@my-tool/core'`,
       '',
       `export default definePreset(${body})`,
       '',
@@ -59,7 +59,7 @@ function configWith(extra: Record<string, unknown>): Record<string, unknown> {
 
 describe('resolveEffectiveConfig', { timeout: 20000 }, async () => {
   it('leaves a config with no extends unchanged', async () => {
-    const repoDir = mkdtempSync(join(tmpdir(), 'exadev-preset-'))
+    const repoDir = mkdtempSync(join(tmpdir(), 'my-tool-preset-'))
     const config = await resolveEffectiveConfig({
       config: configWith({ schema: 'zod', capabilities: { lint: 'self' } }),
       baseDir: repoDir,
@@ -75,11 +75,11 @@ describe('resolveEffectiveConfig', { timeout: 20000 }, async () => {
   })
 
   it('inherits a local-path preset bindings, and a local binding overrides it', async () => {
-    const repoDir = mkdtempSync(join(tmpdir(), 'exadev-preset-'))
+    const repoDir = mkdtempSync(join(tmpdir(), 'my-tool-preset-'))
     writeLocalPreset(
       repoDir,
       'presets/stack.ts',
-      `{ taskRunner: 'turbo', schema: 'valibot', capabilities: { lint: '@exadev/eslint', test: '@exadev/vitest' } }`,
+      `{ taskRunner: 'turbo', schema: 'valibot', capabilities: { lint: '@my-tool/eslint', test: '@my-tool/vitest' } }`,
     )
 
     const config = await resolveEffectiveConfig({
@@ -97,19 +97,19 @@ describe('resolveEffectiveConfig', { timeout: 20000 }, async () => {
     // schema only the preset set -> inherited.
     expect(config.schema).toBe('valibot')
     // lint: local overrides the preset; test: preset-only carries through.
-    expect(config.capabilities).toEqual({ lint: 'self', test: '@exadev/vitest' })
+    expect(config.capabilities).toEqual({ lint: 'self', test: '@my-tool/vitest' })
   })
 
-  it("resolves a preset that imports definePreset from the bare '@exadev/core' specifier", async () => {
-    // A real distributable preset imports its helper from '@exadev/core', not an
+  it("resolves a preset that imports definePreset from the bare '@my-tool/core' specifier", async () => {
+    // A real distributable preset imports its helper from '@my-tool/core', not an
     // absolute dist path. In a temp repo with no node_modules, the only way this
-    // resolves is the authoring-jiti alias mapping '@exadev/core' to the engine
+    // resolves is the authoring-jiti alias mapping '@my-tool/core' to the engine
     // barrel. This is the case the absolute-path fixtures could not exercise.
-    const repoDir = mkdtempSync(join(tmpdir(), 'exadev-preset-bare-'))
+    const repoDir = mkdtempSync(join(tmpdir(), 'my-tool-preset-bare-'))
     writeBareSpecifierPreset(
       repoDir,
       'presets/bare.ts',
-      `{ name: 'bare', capabilities: { lint: '@exadev/eslint' } }`,
+      `{ name: 'bare', capabilities: { lint: '@my-tool/eslint' } }`,
     )
 
     const config = await resolveEffectiveConfig({
@@ -117,13 +117,13 @@ describe('resolveEffectiveConfig', { timeout: 20000 }, async () => {
       baseDir: repoDir,
     })
 
-    expect(config.capabilities).toEqual({ lint: '@exadev/eslint' })
+    expect(config.capabilities).toEqual({ lint: '@my-tool/eslint' })
   })
 
   it('applies an extends array in order (later entry overrides earlier)', async () => {
-    const repoDir = mkdtempSync(join(tmpdir(), 'exadev-preset-'))
-    writeLocalPreset(repoDir, 'presets/a.ts', `{ schema: 'valibot', capabilities: { lint: '@exadev/eslint' } }`)
-    writeLocalPreset(repoDir, 'presets/b.ts', `{ schema: 'arktype', capabilities: { test: '@exadev/vitest' } }`)
+    const repoDir = mkdtempSync(join(tmpdir(), 'my-tool-preset-'))
+    writeLocalPreset(repoDir, 'presets/a.ts', `{ schema: 'valibot', capabilities: { lint: '@my-tool/eslint' } }`)
+    writeLocalPreset(repoDir, 'presets/b.ts', `{ schema: 'arktype', capabilities: { test: '@my-tool/vitest' } }`)
 
     const config = await resolveEffectiveConfig({
       config: configWith({ extends: ['./presets/a.ts', './presets/b.ts'] }),
@@ -133,18 +133,18 @@ describe('resolveEffectiveConfig', { timeout: 20000 }, async () => {
     // b is later in the array, so its schema overrides a's.
     expect(config.schema).toBe('arktype')
     expect(config.capabilities).toEqual({
-      lint: '@exadev/eslint',
-      test: '@exadev/vitest',
+      lint: '@my-tool/eslint',
+      test: '@my-tool/vitest',
     })
   })
 
   it('composes a preset-extends-preset chain depth-first', async () => {
-    const repoDir = mkdtempSync(join(tmpdir(), 'exadev-preset-'))
-    writeLocalPreset(repoDir, 'presets/base.ts', `{ packageManager: 'npm', schema: 'valibot', capabilities: { lint: '@exadev/eslint' } }`)
+    const repoDir = mkdtempSync(join(tmpdir(), 'my-tool-preset-'))
+    writeLocalPreset(repoDir, 'presets/base.ts', `{ packageManager: 'npm', schema: 'valibot', capabilities: { lint: '@my-tool/eslint' } }`)
     writeLocalPreset(
       repoDir,
       'presets/derived.ts',
-      `{ extends: './base.ts', packageManager: 'yarn', capabilities: { test: '@exadev/vitest' } }`,
+      `{ extends: './base.ts', packageManager: 'yarn', capabilities: { test: '@my-tool/vitest' } }`,
     )
 
     const config = await resolveEffectiveConfig({
@@ -157,13 +157,13 @@ describe('resolveEffectiveConfig', { timeout: 20000 }, async () => {
     expect(config.packageManager).toBe('pnpm') // local wins over derived & base
     expect(config.schema).toBe('valibot') // only the base preset set it
     expect(config.capabilities).toEqual({
-      lint: '@exadev/eslint', // from base
-      test: '@exadev/vitest', // from derived
+      lint: '@my-tool/eslint', // from base
+      test: '@my-tool/vitest', // from derived
     })
   })
 
   it('unions multi-select bindings from a preset and the local config', async () => {
-    const repoDir = mkdtempSync(join(tmpdir(), 'exadev-preset-'))
+    const repoDir = mkdtempSync(join(tmpdir(), 'my-tool-preset-'))
     writeLocalPreset(repoDir, 'presets/styling.ts', `{ capabilities: { styling: ['tailwind'] } }`)
 
     const config = await resolveEffectiveConfig({
@@ -178,7 +178,7 @@ describe('resolveEffectiveConfig', { timeout: 20000 }, async () => {
   })
 
   it('rejects an extends cycle', async () => {
-    const repoDir = mkdtempSync(join(tmpdir(), 'exadev-preset-'))
+    const repoDir = mkdtempSync(join(tmpdir(), 'my-tool-preset-'))
     writeLocalPreset(repoDir, 'presets/a.ts', `{ extends: './b.ts', schema: 'valibot' }`)
     writeLocalPreset(repoDir, 'presets/b.ts', `{ extends: './a.ts', schema: 'arktype' }`)
 
@@ -191,7 +191,7 @@ describe('resolveEffectiveConfig', { timeout: 20000 }, async () => {
   })
 
   it('refuses an untrusted third-party preset', async () => {
-    const repoDir = mkdtempSync(join(tmpdir(), 'exadev-preset-'))
+    const repoDir = mkdtempSync(join(tmpdir(), 'my-tool-preset-'))
     await expect(
       resolveEffectiveConfig({
         config: configWith({ extends: 'evil-preset' }),
@@ -201,13 +201,13 @@ describe('resolveEffectiveConfig', { timeout: 20000 }, async () => {
   })
 
   it('admits an allowlisted third-party preset', async () => {
-    const repoDir = mkdtempSync(join(tmpdir(), 'exadev-preset-'))
+    const repoDir = mkdtempSync(join(tmpdir(), 'my-tool-preset-'))
     // A third-party package under node_modules so node resolution finds it by
     // its bare specifier.
     writeLocalPreset(
       repoDir,
       'node_modules/trusted-preset/index.js',
-      `{ schema: 'valibot', capabilities: { lint: '@exadev/eslint' } }`,
+      `{ schema: 'valibot', capabilities: { lint: '@my-tool/eslint' } }`,
     )
     writeFileSync(
       join(repoDir, 'node_modules/trusted-preset/package.json'),
@@ -221,21 +221,21 @@ describe('resolveEffectiveConfig', { timeout: 20000 }, async () => {
     })
 
     expect(config.schema).toBe('valibot')
-    expect(config.capabilities).toEqual({ lint: '@exadev/eslint' })
+    expect(config.capabilities).toEqual({ lint: '@my-tool/eslint' })
   })
 
-  it("admits an allowlisted third-party preset that imports definePreset from the bare '@exadev/core' specifier", async () => {
+  it("admits an allowlisted third-party preset that imports definePreset from the bare '@my-tool/core' specifier", async () => {
     // This is the REAL distributed-preset path: the published package uses
-    // `import { definePreset } from '@exadev/core'` (not an absolute path). With
-    // no node_modules/@exadev/core in the temp dir, this resolves only via the
+    // `import { definePreset } from '@my-tool/core'` (not an absolute path). With
+    // no node_modules/@my-tool/core in the temp dir, this resolves only via the
     // authoring-jiti alias. Exercises the alias under node_modules/ resolution,
     // which is what the existing writeLocalPreset-based test sidesteps by using an
     // absolute path.
-    const repoDir = mkdtempSync(join(tmpdir(), 'exadev-preset-bare-nm-'))
+    const repoDir = mkdtempSync(join(tmpdir(), 'my-tool-preset-bare-nm-'))
     writeBareSpecifierPreset(
       repoDir,
       'node_modules/published-preset/index.js',
-      `{ schema: 'arktype', capabilities: { lint: '@exadev/eslint' } }`,
+      `{ schema: 'arktype', capabilities: { lint: '@my-tool/eslint' } }`,
     )
     writeFileSync(
       join(repoDir, 'node_modules/published-preset/package.json'),
@@ -249,11 +249,11 @@ describe('resolveEffectiveConfig', { timeout: 20000 }, async () => {
     })
 
     expect(config.schema).toBe('arktype')
-    expect(config.capabilities).toEqual({ lint: '@exadev/eslint' })
+    expect(config.capabilities).toEqual({ lint: '@my-tool/eslint' })
   })
 
   it('fails loudly when a preset export is malformed', async () => {
-    const repoDir = mkdtempSync(join(tmpdir(), 'exadev-preset-'))
+    const repoDir = mkdtempSync(join(tmpdir(), 'my-tool-preset-'))
     const bad = join(repoDir, 'presets/bad.ts')
     mkdirSync(join(bad, '..'), { recursive: true })
     writeFileSync(bad, `export default { packageManager: 'cargo' }\n`)
@@ -267,7 +267,7 @@ describe('resolveEffectiveConfig', { timeout: 20000 }, async () => {
   })
 
   it("refuses a 'self' preset reference (not loadable)", async () => {
-    const repoDir = mkdtempSync(join(tmpdir(), 'exadev-preset-'))
+    const repoDir = mkdtempSync(join(tmpdir(), 'my-tool-preset-'))
     await expect(
       resolveEffectiveConfig({
         config: configWith({ extends: 'self' }),

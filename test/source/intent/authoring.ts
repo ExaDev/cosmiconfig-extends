@@ -40,7 +40,7 @@ function mergeConfigLayers(base: unknown, override: unknown): unknown {
  */
 export function authoringOptions(policy: ProviderTrustPolicy): ExplorerOptions {
   return {
-    alias: { exadev: BARREL_DIRECTORY, '@exadev/core': BARREL_DIRECTORY },
+    alias: { 'my-tool': BARREL_DIRECTORY, '@my-tool/core': BARREL_DIRECTORY },
     trust: ({ ref }) => {
       const decision = classifyProviderRef(ref, policy);
       if (decision.origin === 'self') {
@@ -54,7 +54,7 @@ export function authoringOptions(policy: ProviderTrustPolicy): ExplorerOptions {
   };
 }
 
-export const EXPLORER_MODULE_NAME = 'exadev';
+export const EXPLORER_MODULE_NAME = 'my-tool';
 
 export function authoringExplorer(policy: ProviderTrustPolicy) {
   return createExplorer(EXPLORER_MODULE_NAME, authoringOptions(policy));
