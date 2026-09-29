@@ -107,7 +107,7 @@ jobs:
           restore-keys: |
             stryker-incremental-
       # Stryker only diffs mutated and test files, so a change outside that scope (config, fixture data, an env var) is invisible to the incremental differ. --force on push to main (never on a PR) rebuilds the incremental file from a known-clean baseline so that blind spot cannot compound.
-      - run: pnpm test:mutation${{ github.ref == 'refs/heads/main' && ' -- --force' || '' }}
+      - run: pnpm test:mutation${{ github.ref == 'refs/heads/main' && ' --force' || '' }}
       - name: Save Stryker incremental result cache
         if: always()
         uses: actions/cache/save@v6
