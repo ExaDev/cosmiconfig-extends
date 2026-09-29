@@ -121,6 +121,13 @@ describe('createJitiLoader', () => {
       ['.json', 'module', (value) => JSON.stringify({ value })],
     ];
 
+    it('evaluates top-level await in an ES module preset', async () => {
+      const root = makeProject({ 'preset.mjs': "export default { value: await Promise.resolve('awaited') };\n" });
+      const { importer } = createJitiLoader();
+
+      expect(await importer.importDefault(join(root, 'preset.mjs'))).toEqual({ value: 'awaited' });
+    });
+
     it.each(formats)('re-evaluates a rewritten %s file in a %s package', async (extension, type, body) => {
       const file = `preset${extension}`;
       const root = makeProject({ 'package.json': JSON.stringify({ type }), [file]: body('one') });
