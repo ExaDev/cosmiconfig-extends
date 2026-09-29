@@ -1,7 +1,7 @@
 // intent — the definePreset contract and the preset reference shape.
 //
 // A preset is a shareable, reusable bundle of substrate choices and capability
-// bindings that a repo's exadev.config.ts can `extends`, so an org publishes a
+// bindings that a repo's my-tool.config.ts can `extends`, so an org publishes a
 // standard stack once and many repos inherit it (the fleet-consistency story for
 // polyrepo). A preset is a PARTIAL config: any subset of the substrate fields
 // plus any capability bindings, with no field required. It is the defaults layer;

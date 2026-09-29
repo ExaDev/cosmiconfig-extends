@@ -36,7 +36,7 @@ export type SchemaKey = z.infer<typeof SchemaKeySchema>
 /**
  * A binding to a provider of a capability. A provider reference is one of:
  * - 'self'                  — the developer implements the port,
- * - a package specifier     — '@exadev/orpc', a third-party package,
+ * - a package specifier     — '@my-tool/orpc', a third-party package,
  * - a local path            — './packages/my-storage'.
  *
  * The string form is deliberately permissive: the resolver, not the schema,
@@ -56,7 +56,7 @@ export type FrontendBinding = z.infer<typeof FrontendBindingSchema>
 
 /**
  * A provider-options binding: a provider reference plus arbitrary extra keys
- * that are the provider's own options (e.g. `{ provider: '@exadev/eslint',
+ * that are the provider's own options (e.g. `{ provider: '@my-tool/eslint',
  * format: 'js' }`). This is the general provider-options shape the README
  * describes; the `provider` field is reserved, every other key is an option.
  *
@@ -153,7 +153,7 @@ export function bindingOptions(
 
 /**
  * A reference to a preset to extend. A preset reference uses the SAME reference
- * space as a provider reference: a published package specifier ('@exadev/stack'
+ * space as a provider reference: a published package specifier ('@my-tool/stack'
  * or a third-party package), a local path ('./local-preset'), or a first-party/
  * self key ('self'). The loader, not the schema, resolves the reference to a
  * preset module; the schema only requires a non-empty string.

@@ -16,7 +16,7 @@ export interface ResolveEffectiveConfigInput {
 }
 
 /**
- * Resolve an in-memory config's `extends` chain and parse the merged result. The config has no file of its own, so `extends` is applied as if it were exadev.config.ts in `baseDir`.
+ * Resolve an in-memory config's `extends` chain and parse the merged result. The config has no file of its own, so `extends` is applied as if it were my-tool.config.ts in `baseDir`.
  */
 export async function resolveEffectiveConfig(input: ResolveEffectiveConfigInput): Promise<Config> {
   const { config, baseDir, policy = {} } = input;

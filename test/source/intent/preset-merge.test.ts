@@ -35,13 +35,13 @@ describe('mergeLayers', async () => {
 
   it('merges capability bindings key-by-key, local overriding the preset', async () => {
     const preset: ConfigLayer = {
-      capabilities: { lint: '@exadev/eslint', test: '@exadev/vitest' },
+      capabilities: { lint: '@my-tool/eslint', test: '@my-tool/vitest' },
     }
     const local: ConfigLayer = { capabilities: { lint: 'self' } }
     const merged = mergeLayers([preset, local])
     expect(merged.capabilities).toEqual({
       lint: 'self', // local wins for this key
-      test: '@exadev/vitest', // preset-only key carries through
+      test: '@my-tool/vitest', // preset-only key carries through
     })
   })
 
@@ -58,7 +58,7 @@ describe('mergeLayers', async () => {
   })
 
   it('replaces a string binding outright (no composition)', async () => {
-    const preset: ConfigLayer = { capabilities: { 'api-contract': '@exadev/orpc' } }
+    const preset: ConfigLayer = { capabilities: { 'api-contract': '@my-tool/orpc' } }
     const local: ConfigLayer = { capabilities: { 'api-contract': 'self' } }
     expect(mergeLayers([preset, local]).capabilities).toEqual({
       'api-contract': 'self',
@@ -82,7 +82,7 @@ describe('mergeToConfig', async () => {
       packageManager: 'pnpm',
       taskRunner: 'none',
       schema: 'valibot',
-      capabilities: { lint: '@exadev/eslint' },
+      capabilities: { lint: '@my-tool/eslint' },
     }
     const local: ConfigLayer = { capabilities: { lint: 'self' } }
     const config = mergeToConfig([preset, local])
