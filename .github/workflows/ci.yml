@@ -27,7 +27,22 @@ jobs:
       - uses: actions/checkout@v7
         with:
           fetch-depth: 0
-      - uses: wagoid/commitlint-github-action@v6
+      - uses: pnpm/action-setup@v6
+      - uses: actions/setup-node@v7
+        with:
+          node-version: '22'
+          cache: pnpm
+      # Not wagoid/commitlint-github-action: it is a Docker container action, and the self-hosted fleet has no Docker daemon.
+      - run: pnpm install --frozen-lockfile
+      - name: Lint the commits of a pull request
+        if: github.event_name == 'pull_request'
+        run: pnpm exec commitlint --from "$BASE_SHA" --to "$HEAD_SHA"
+        env:
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+      - name: Lint the last commit of a push
+        if: github.event_name != 'pull_request'
+        run: pnpm exec commitlint --last
 
   lint:
     name: Lint
