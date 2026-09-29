@@ -1,3 +1,5 @@
+import { mkdtempSync, realpathSync, symlinkSync, writeFileSync } from 'node:fs';
+import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 
 import type { CosmiconfigResult } from 'cosmiconfig';
@@ -18,10 +20,21 @@ function transformFor(options: Options = {}) {
   const transform = createExtendsTransform({ importer, ...options });
 
   return async (root: string, config: unknown): Promise<unknown> => {
-    const result = await transform({ config, filepath: join(root, 'config.ts') });
+    const filepath = configFileIn(root);
+    const result = await transform({ config, filepath });
 
     return result?.config;
   };
+}
+
+/**
+ * The transform canonicalises the config's path, which cosmiconfig only ever supplies for a file that exists; appending nothing creates an empty stand-in without touching a file that is already there.
+ */
+function configFileIn(root: string): string {
+  const filepath = join(root, 'config.ts');
+  writeFileSync(filepath, '', { flag: 'a' });
+
+  return filepath;
 }
 
 function isList(value: unknown): value is readonly unknown[] {
@@ -42,16 +55,17 @@ describe('createExtendsTransform', () => {
 
     it('passes an empty-file result through untouched', async () => {
       const { importer } = createJitiLoader();
-      const empty: CosmiconfigResult = { config: undefined, filepath: '/x/config.ts', isEmpty: true };
+      const empty: CosmiconfigResult = { config: undefined, filepath: join(makeProject(), 'config.ts'), isEmpty: true };
 
       expect(await createExtendsTransform({ importer })(empty)).toBe(empty);
     });
 
     it('keeps the other fields of the result it transforms', async () => {
       const { importer } = createJitiLoader();
-      const result = await createExtendsTransform({ importer })({ config: { a: 'x' }, filepath: '/x/config.ts' });
+      const filepath = configFileIn(makeProject());
+      const result = await createExtendsTransform({ importer })({ config: { a: 'x' }, filepath });
 
-      expect(result).toEqual({ config: { a: 'x' }, filepath: '/x/config.ts' });
+      expect(result).toEqual({ config: { a: 'x' }, filepath });
     });
   });
 
@@ -200,7 +214,7 @@ describe('createExtendsTransform', () => {
       const importDefault = vi.spyOn(importer, 'importDefault');
       const transform = createExtendsTransform({ importer });
 
-      await expect(transform({ config: { extends: 'third-party' }, filepath: '/x/config.ts' })).rejects.toThrow(/untrusted/);
+      await expect(transform({ config: { extends: 'third-party' }, filepath: configFileIn(makeProject()) })).rejects.toThrow(/untrusted/);
       expect(resolve).not.toHaveBeenCalled();
       expect(importDefault).not.toHaveBeenCalled();
     });
@@ -290,6 +304,21 @@ describe('createExtendsTransform', () => {
       await expect(transformFor()(root, { extends: './presets/a.ts' })).rejects.toThrow(/extends cycle detected/);
     });
 
+    it('rejects a config reached through a symlink that extends itself, before importing anything', async () => {
+      const root = makeProject({ 'config.ts': preset("{ extends: './config.ts' }") });
+      const linkDir = realpathSync(mkdtempSync(join(tmpdir(), 'cosmiconfig-extends-link-')));
+      const link = join(linkDir, 'linked');
+      symlinkSync(root, link);
+      const { importer } = createJitiLoader();
+      const importDefault = vi.spyOn(importer, 'importDefault');
+      const transform = createExtendsTransform({ importer });
+
+      await expect(transform({ config: { extends: './config.ts' }, filepath: join(link, 'config.ts') })).rejects.toThrow(
+        /extends cycle detected/,
+      );
+      expect(importDefault).not.toHaveBeenCalled();
+    });
+
     it('does not treat a diamond as a cycle', async () => {
       const root = makeProject({
         'base.ts': preset("{ onlyBase: true }"),
@@ -338,7 +367,7 @@ describe('createExtendsTransform', () => {
     it('rejects a null preset, which an importer other than jiti can return', async () => {
       const importer = { resolve: () => '/x/null.ts', importDefault: async () => Promise.resolve(null) };
 
-      await expect(createExtendsTransform({ importer })({ config: { extends: './null.ts' }, filepath: '/x/config.ts' })).rejects.toThrow(
+      await expect(createExtendsTransform({ importer })({ config: { extends: './null.ts' }, filepath: configFileIn(makeProject()) })).rejects.toThrow(
         "preset './null.ts' is not an object",
       );
     });

@@ -73,7 +73,7 @@ For each reference in `extends` (a string or an array), in order:
 
 1. **Trust.** The `trust` predicate runs first, on the unresolved reference. Loading a preset evaluates its code, so nothing is resolved or imported for a reference that is refused, and an untrusted package that is not installed fails as untrusted, not as module-not-found. The default trusts local paths (`./`, `../`, absolute) and refuses packages. The predicate receives `{ ref, kind, fromFile }`, returns a boolean, and may throw for a more specific message. Trust is checked for every reference at every depth, so an allowed preset cannot smuggle in an untrusted base.
 2. **Resolution.** The reference resolves from the directory of the file that names it, as in tsconfig and ESLint. A preset's own `extends: './base.ts'` is relative to that preset.
-3. **Cycles.** The resolved path is compared with the files currently being loaded, starting with the config itself. Two spellings of one file are the same node. A base reached through two parents (a diamond) is not a cycle.
+3. **Cycles.** The resolved path is compared with the files currently being loaded, starting with the config itself, whose `filepath` is resolved to its real path first, so it must name an existing file, as cosmiconfig's results do. Two spellings of one file, including a path through a symlink, are the same node. A base reached through two parents (a diamond) is not a cycle.
 4. **Validation.** With `presetSchema`, each preset is validated and replaced by the schema output. The schema must keep the `extends` key, and must not apply defaults, since a default would turn "no opinion" into an override.
 5. **Recursion.** The preset's own `extends` is processed depth-first.
 
