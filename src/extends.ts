@@ -1,3 +1,4 @@
+import { realpathSync } from 'node:fs';
 import { dirname, isAbsolute } from 'node:path';
 
 import type { StandardSchemaV1 } from '@standard-schema/spec';
@@ -96,7 +97,7 @@ function withoutKey(layer: unknown, key: string): unknown {
 /**
  * Create a cosmiconfig `Transform` (the same in cosmiconfig 9 and 10) that applies `extends`.
  *
- * For each reference the file names, in order: the trust predicate runs, the reference resolves from the directory of the file that names it (so a nested preset's relative reference is relative to that preset, as in tsconfig), and the path it resolves to is checked against the files currently being loaded to reject a cycle. The same base reached by two parents is a diamond, not a cycle. The layers are then folded through `merge`, deepest base first and the config last.
+ * For each reference the file names, in order: the trust predicate runs, the reference resolves from the directory of the file that names it (so a nested preset's relative reference is relative to that preset, as in tsconfig), and the path it resolves to is checked against the files currently being loaded to reject a cycle. The importer resolves to real paths, so the config's own path is canonicalised the same way before it seeds that list. The same base reached by two parents is a diamond, not a cycle. The layers are then folded through `merge`, deepest base first and the config last.
  */
 export function createExtendsTransform(options: ExtendsOptions): Transform {
   const { importer, trust = ({ kind }) => kind === 'local', merge = deepMerge, extendsKey = 'extends' } = options;
@@ -134,7 +135,7 @@ export function createExtendsTransform(options: ExtendsOptions): Transform {
 
     const config: unknown = result.config;
     const { filepath } = result;
-    const layers = [...(await layersFor(config, filepath, [filepath])), withoutKey(config, extendsKey)];
+    const layers = [...(await layersFor(config, filepath, [realpathSync(filepath)])), withoutKey(config, extendsKey)];
     const merged = layers.reduce<unknown>((accumulated, layer) => merge(accumulated, layer), {});
     const effective = options.schema === undefined ? merged : await validateStandard(options.schema, merged, `config ${filepath}`);
 
