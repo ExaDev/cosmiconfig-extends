@@ -296,7 +296,15 @@ describe('createExtendsTransform', () => {
           'node_modules/@acme/stack/lib/base.json': JSON.stringify({ fromBase: true }),
         });
 
-        expect(await transformFor({ trust: stackOnly })(root, { extends: '@acme/stack' })).toEqual({ fromBase: true, fromStack: true });
+        const contexts: string[] = [];
+        const trust = (context: TrustContext) => {
+          contexts.push(`${context.kind}:${context.ref}`);
+
+          return stackOnly(context);
+        };
+
+        expect(await transformFor({ trust })(root, { extends: '@acme/stack' })).toEqual({ fromBase: true, fromStack: true });
+        expect(contexts).toEqual(['package:@acme/stack', 'local:./lib/base.json']);
       });
 
       it('refuses a local reference that leaves the package that names it for a place outside any package', async () => {
