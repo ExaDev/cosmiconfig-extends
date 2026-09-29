@@ -243,6 +243,94 @@ describe('createExtendsTransform', () => {
       await expect(transformFor({ trust: asynchronous })(root, { extends: './a.ts' })).rejects.toThrow(/refusing to load untrusted preset/);
     });
 
+    describe('local references that resolve into an installed package', () => {
+      const stack = {
+        'node_modules/@acme/stack/package.json': JSON.stringify({ name: '@acme/stack', main: 'preset.json' }),
+        'node_modules/@acme/stack/preset.json': JSON.stringify({ fromStack: true, extends: '../evil/index.ts' }),
+        'node_modules/@acme/evil/package.json': JSON.stringify({ name: '@acme/evil', type: 'module' }),
+        'node_modules/@acme/evil/index.ts': preset('{ evil: true }'),
+      };
+      const stackOnly = ({ ref, kind }: TrustContext) => kind === 'local' || ref === '@acme/stack';
+
+      it('asks the predicate about the sibling package a trusted package names by relative path, and refuses it', async () => {
+        const root = makeProject(stack);
+        const { importer } = createJitiLoader();
+        const importDefault = vi.spyOn(importer, 'importDefault');
+        const contexts: TrustContext[] = [];
+        const trust = (context: TrustContext) => {
+          contexts.push(context);
+
+          return stackOnly(context);
+        };
+        const transform = createExtendsTransform({ importer, trust });
+
+        await expect(transform({ config: { extends: '@acme/stack' }, filepath: configFileIn(root) })).rejects.toThrow(
+          /refusing to load untrusted preset '\.\.\/evil\/index\.ts' \(package '@acme\/evil'\)/,
+        );
+        expect(contexts.map(({ ref, kind }) => `${kind}:${ref}`)).toEqual(['package:@acme/stack', 'local:../evil/index.ts', 'package:@acme/evil']);
+        expect(importDefault).toHaveBeenCalledTimes(1);
+      });
+
+      it('admits the sibling package when the predicate allows it by name', async () => {
+        const root = makeProject(stack);
+        const trust = (context: TrustContext) => stackOnly(context) || context.ref === '@acme/evil';
+
+        expect(await transformFor({ trust })(root, { extends: '@acme/stack' })).toEqual({ fromStack: true, evil: true });
+      });
+
+      it('refuses an installed package named by a relative path from the config, under the default policy', async () => {
+        const root = makeProject({
+          'node_modules/evil-preset/package.json': JSON.stringify({ name: 'evil-preset', type: 'module' }),
+          'node_modules/evil-preset/index.ts': preset('{ evil: true }'),
+        });
+
+        await expect(transformFor()(root, { extends: './node_modules/evil-preset/index.ts' })).rejects.toThrow(
+          /refusing to load untrusted preset '\.\/node_modules\/evil-preset\/index\.ts' \(package 'evil-preset'\)/,
+        );
+      });
+
+      it('does not ask again for a local reference that stays inside the package that names it', async () => {
+        const root = makeProject({
+          'node_modules/@acme/stack/package.json': JSON.stringify({ name: '@acme/stack', main: 'preset.json' }),
+          'node_modules/@acme/stack/preset.json': JSON.stringify({ extends: './lib/base.json', fromStack: true }),
+          'node_modules/@acme/stack/lib/base.json': JSON.stringify({ fromBase: true }),
+        });
+
+        expect(await transformFor({ trust: stackOnly })(root, { extends: '@acme/stack' })).toEqual({ fromBase: true, fromStack: true });
+      });
+
+      it('refuses a local reference that leaves the package that names it for a place outside any package', async () => {
+        const root = makeProject({
+          'node_modules/@acme/stack/package.json': JSON.stringify({ name: '@acme/stack', main: 'preset.json' }),
+          'node_modules/@acme/stack/preset.json': JSON.stringify({ extends: '../../../outside.ts' }),
+          'outside.ts': preset('{ outside: true }'),
+        });
+
+        await expect(transformFor({ trust: stackOnly })(root, { extends: '@acme/stack' })).rejects.toThrow(
+          /refusing to load '\.\.\/\.\.\/\.\.\/outside\.ts' named in .*preset\.json: it resolves outside the package '@acme\/stack'/,
+        );
+      });
+
+      it('names the package of a nested install by its innermost node_modules directory', async () => {
+        const root = makeProject({
+          'node_modules/@acme/stack/package.json': JSON.stringify({ name: '@acme/stack', main: 'preset.json' }),
+          'node_modules/@acme/stack/preset.json': JSON.stringify({ extends: './node_modules/inner/index.json' }),
+          'node_modules/@acme/stack/node_modules/inner/index.json': JSON.stringify({ inner: true }),
+        });
+        const names: string[] = [];
+        const trust = ({ ref, kind }: TrustContext) => {
+          if (kind === 'package') {
+            names.push(ref);
+          }
+
+          return kind === 'local' || ref === '@acme/stack';
+        };
+
+        await expect(transformFor({ trust })(root, { extends: '@acme/stack' })).rejects.toThrow(/untrusted/);
+        expect(names).toEqual(['@acme/stack', 'inner']);
+      });
+    });
+
     it('lets the predicate throw its own message', async () => {
       const root = makeProject();
       const trust = ({ ref }: TrustContext): boolean => {
