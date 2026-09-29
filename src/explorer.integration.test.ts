@@ -21,6 +21,14 @@ describe('createExplorer', () => {
     expect(result).toEqual({ config: { a: 'x' }, filepath: join(root, 'my-tool.config.ts') });
   });
 
+  it('reports a config that exports undefined as empty, without a spurious default key', async () => {
+    const root = makeProject({ 'my-tool.config.ts': 'export default undefined;\n' });
+
+    const filepath = join(root, 'my-tool.config.ts');
+
+    expect(await createExplorer('my-tool').load(filepath)).toEqual({ config: undefined, filepath, isEmpty: true });
+  });
+
   it('returns null when nothing is found', async () => {
     expect(await createExplorer('my-tool').search(makeProject())).toBeNull();
   });

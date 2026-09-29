@@ -57,7 +57,7 @@ function assertAliasTargetsAreDirectories(alias: Readonly<Record<string, string>
 /**
  * Create a jiti-backed cosmiconfig loader.
  *
- * Every jiti option that affects which file is loaded or whether it is fresh is passed explicitly, so no `JITI_*` environment variable can change the result. `moduleCache` is `false`: jiti's in-process module cache survives cosmiconfig's `clearCaches()` and `cache: false`, so leaving it on serves a stale config, and stale transitive imports, after a file changes within one process. That option only affects modules jiti transpiles, so {@link ModuleImporter.importDefault} also evaluates the requested file itself afresh; JavaScript modules and packages that a file imports are loaded natively by the runtime and stay cached. `tryNative` is `false`: jiti turns it on by default under Bun and from `JITI_TRY_NATIVE`, and a native import ignores the aliases and is served from the runtime's own module cache.
+ * Every jiti option that affects which file is loaded or whether it is fresh is passed explicitly, so no `JITI_*` environment variable can change the result. `moduleCache` is `false`: jiti's in-process module cache survives cosmiconfig's `clearCaches()` and `cache: false`, so leaving it on serves a stale config, and stale transitive imports, after a file changes within one process. That option only affects modules jiti transpiles, so {@link ModuleImporter.importDefault} also evaluates the requested file itself afresh; JavaScript modules and packages that a file imports are loaded natively by the runtime and stay cached. `interopDefault` is `false`: jiti's interop wrapper makes a module whose default export is `undefined` report itself as its default, which would reach the merge as a spurious `default` key, and {@link defaultExportOf} already unwraps the default export. `tryNative` is `false`: jiti turns it on by default under Bun and from `JITI_TRY_NATIVE`, and a native import ignores the aliases and is served from the runtime's own module cache.
  */
 export function createJitiLoader(options: JitiLoaderOptions = {}): JitiLoader {
   const { alias, fsCache = true } = options;
@@ -69,6 +69,7 @@ export function createJitiLoader(options: JitiLoaderOptions = {}): JitiLoader {
     createJiti(pathToFileURL(`${dir}/`).href, {
       alias: { ...alias },
       fsCache,
+      interopDefault: false,
       moduleCache: false,
       tryNative: false,
     });
