@@ -15,6 +15,17 @@ describe('createJitiLoader', () => {
     expect(await loader(join(root, 'config.ts'), '')).toEqual({ a: 1 });
   });
 
+  it.each([
+    ['undefined', undefined],
+    ['null', null],
+    ['zero', 0],
+  ])('returns a default export of %s as it is', async (source, expected) => {
+    const root = makeProject({ 'config.ts': `export default ${source === 'zero' ? '0' : source};\n` });
+    const { importer } = createJitiLoader();
+
+    expect(await importer.importDefault(join(root, 'config.ts'))).toBe(expected);
+  });
+
   it('returns the namespace when the file has no default export', async () => {
     const root = makeProject({ 'config.ts': "export const named = 'x';\n" });
     const { importer } = createJitiLoader();
