@@ -1,8 +1,10 @@
+import fsPromises from 'node:fs/promises';
+import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 
 import { cosmiconfig as cosmiconfig10 } from 'cosmiconfig-10';
 import { cosmiconfig as cosmiconfig9 } from 'cosmiconfig-9';
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 
 import { makeProject, writeProjectFile } from '../test/support/project';
 
@@ -70,5 +72,62 @@ describe.each([
     const explorer = cosmiconfig('my-tool', { loaders, transform: createExtendsTransform({ importer }) });
 
     await expect(explorer.load(join(root, 'config.ts'))).rejects.toThrow(/refusing to load untrusted preset 'third-party-preset'/);
+  });
+});
+
+/**
+ * Pins the cosmiconfig behaviour that the `searchUpTo` option of `createExplorer` is designed around, in both majors.
+ */
+describe.each([
+  ['cosmiconfig 9', cosmiconfig9],
+  ['cosmiconfig 10', cosmiconfig10],
+] as const)('%s search strategies', (_name, cosmiconfig) => {
+  const { loader } = createJitiLoader();
+  const loaders = { '.ts': loader, '.mts': loader, '.cts': loader };
+
+  async function directoriesChecked(search: (from: string) => Promise<unknown>, from: string): Promise<readonly string[]> {
+    const stat = vi.spyOn(fsPromises, 'stat');
+    try {
+      await search(from);
+
+      return stat.mock.calls.flatMap(([path]) => (typeof path === 'string' ? [path] : []));
+    } finally {
+      stat.mockRestore();
+    }
+  }
+
+  it('searches only the start directory with the none strategy', async () => {
+    const root = makeProject({ '.my-toolrc.json': '{}', 'start/placeholder.txt': '' });
+
+    expect(await cosmiconfig('my-tool', { loaders, searchStrategy: 'none' }).search(join(root, 'start'))).toBeNull();
+  });
+
+  it('stops at the first directory with a package.json with the project strategy', async () => {
+    const root = makeProject({ '.my-toolrc.json': '{}', 'package/package.json': '{}', 'package/start/placeholder.txt': '' });
+
+    expect(await cosmiconfig('my-tool', { loaders, searchStrategy: 'project' }).search(join(root, 'package/start'))).toBeNull();
+  });
+
+  it('rejects stopDir with a strategy other than global', () => {
+    for (const searchStrategy of ['none', 'project'] as const) {
+      expect(() => cosmiconfig('my-tool', { loaders, searchStrategy, stopDir: tmpdir() })).toThrow(/stopDir/);
+    }
+  });
+
+  it('includes stopDir in the global strategy', async () => {
+    const root = makeProject({ 'bound/.my-toolrc.json': '{"from":"bound"}', 'bound/start/placeholder.txt': '' });
+
+    const result = await cosmiconfig('my-tool', { loaders, searchStrategy: 'global', stopDir: join(root, 'bound') }).search(join(root, 'bound/start'));
+
+    expect(result?.config).toEqual({ from: 'bound' });
+  });
+
+  it('still checks the OS config directory after stopDir with the global strategy', async () => {
+    const root = makeProject({ 'bound/start/placeholder.txt': '' });
+    const explorer = cosmiconfig('my-tool', { loaders, searchStrategy: 'global', stopDir: join(root, 'bound') });
+
+    const checked = await directoriesChecked(async (from) => explorer.search(from), join(root, 'bound/start'));
+
+    expect(checked.filter((directory) => !directory.startsWith(root))).not.toEqual([]);
   });
 });
