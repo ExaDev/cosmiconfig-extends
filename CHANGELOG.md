@@ -1,3 +1,10 @@
+# [1.1.0](https://github.com/ExaDev/cosmiconfig-extends/compare/v1.0.1...v1.1.0) (2026-10-01)
+
+
+### Features
+
+* **explorer:** add a searchUpTo option for bounded upward search ([fc99e87](https://github.com/ExaDev/cosmiconfig-extends/commit/fc99e87c1c20d49e1cbe262ecc9adbbd39a479f1))
+
 ## [1.0.1](https://github.com/ExaDev/cosmiconfig-extends/compare/v1.0.0...v1.0.1) (2026-09-29)
 
 # 1.0.0 (2026-09-29)
