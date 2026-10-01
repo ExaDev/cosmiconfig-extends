@@ -1,7 +1,9 @@
+import fsPromises from 'node:fs/promises';
 import { join } from 'node:path';
 
 import * as v from 'valibot';
-import { describe, expect, it } from 'vitest';
+import type { PublicExplorer } from 'cosmiconfig';
+import { describe, expect, it, vi } from 'vitest';
 import { z } from 'zod';
 
 import { makeProject, writeProjectFile } from '../test/support/project';
@@ -128,5 +130,177 @@ describe('createExplorer', () => {
     explorer.clearCaches();
 
     expect((await explorer.load(file))?.config).toEqual({ a: 'two' });
+  });
+});
+
+describe('createExplorer searchUpTo', () => {
+  const rc = (from: string): string => JSON.stringify({ from });
+
+  it('searches parents up to the directory, nearest first', async () => {
+    const root = makeProject({
+      'bound/.my-toolrc.json': rc('bound'),
+      'bound/middle/.my-toolrc.json': rc('middle'),
+      'bound/middle/start/placeholder.txt': '',
+    });
+
+    const result = await createExplorer('my-tool', { searchUpTo: join(root, 'bound') }).search(join(root, 'bound/middle/start'));
+
+    expect(result?.config).toEqual({ from: 'middle' });
+  });
+
+  it('includes the bounding directory itself', async () => {
+    const root = makeProject({ 'bound/.my-toolrc.json': rc('bound'), 'bound/start/placeholder.txt': '' });
+
+    const result = await createExplorer('my-tool', { searchUpTo: join(root, 'bound') }).search(join(root, 'bound/start'));
+
+    expect(result?.filepath).toBe(join(root, 'bound/.my-toolrc.json'));
+  });
+
+  it('does not search above the bounding directory', async () => {
+    const root = makeProject({ '.my-toolrc.json': rc('above'), 'bound/start/placeholder.txt': '' });
+
+    expect(await createExplorer('my-tool', { searchUpTo: join(root, 'bound') }).search(join(root, 'bound/start'))).toBeNull();
+  });
+
+  it('searches the start directory when it is the bounding directory', async () => {
+    const root = makeProject({ 'bound/.my-toolrc.json': rc('bound') });
+
+    const result = await createExplorer('my-tool', { searchUpTo: join(root, 'bound') }).search(join(root, 'bound'));
+
+    expect(result?.config).toEqual({ from: 'bound' });
+  });
+
+  it('applies extends to a config found in a parent', async () => {
+    const root = makeProject({
+      'bound/preset.ts': "export default { a: 'preset', b: 'preset' };\n",
+      'bound/my-tool.config.ts': "export default { extends: './preset.ts', b: 'config' };\n",
+      'bound/start/placeholder.txt': '',
+    });
+
+    const result = await createExplorer('my-tool', { searchUpTo: join(root, 'bound') }).search(join(root, 'bound/start'));
+
+    expect(result?.config).toEqual({ a: 'preset', b: 'config' });
+  });
+
+  it('throws when the search starts outside the bounding directory', async () => {
+    const root = makeProject({ 'bound/placeholder.txt': '', 'elsewhere/.my-toolrc.json': rc('elsewhere') });
+    const explorer = createExplorer('my-tool', { searchUpTo: join(root, 'bound') });
+
+    await expect(explorer.search(join(root, 'elsewhere'))).rejects.toThrow(/does not contain it/);
+  });
+
+  it('is not fooled by a sibling directory sharing the bounding directory name as a prefix', async () => {
+    const root = makeProject({ 'bound/placeholder.txt': '', 'bound-sibling/.my-toolrc.json': rc('sibling') });
+    const explorer = createExplorer('my-tool', { searchUpTo: join(root, 'bound') });
+
+    await expect(explorer.search(join(root, 'bound-sibling'))).rejects.toThrow(/does not contain it/);
+  });
+
+  it('keeps the other explorer methods', async () => {
+    const root = makeProject({ 'config.ts': "export default { a: 'x' };\n" });
+    const explorer = createExplorer('my-tool', { searchUpTo: root });
+
+    expect((await explorer.load(join(root, 'config.ts')))?.config).toEqual({ a: 'x' });
+    expect(() => {
+      explorer.clearCaches();
+    }).not.toThrow();
+  });
+
+  describe('against the user global config directory', () => {
+    /**
+     * Records every directory cosmiconfig checks during `search`, so the test does not depend on where the OS keeps the global config directory (cosmiconfig's path lookup caches the home directory at import time, so it cannot be redirected with environment variables). cosmiconfig stats a directory before reading anything from it, whether or not it exists.
+     */
+    async function pathsCheckedBy(explorer: Readonly<PublicExplorer>, from: string): Promise<readonly string[]> {
+      const stat = vi.spyOn(fsPromises, 'stat');
+      try {
+        await explorer.search(from);
+
+        return stat.mock.calls.flatMap(([path]) => (typeof path === 'string' ? [path] : []));
+      } finally {
+        stat.mockRestore();
+      }
+    }
+
+    it('is never read for a directory bound, though the global strategy with stopDir reads it', async () => {
+      const root = makeProject({ 'bound/start/placeholder.txt': '' });
+      const start = join(root, 'bound/start');
+      const outsideRoot = (file: string): boolean => !file.startsWith(root);
+
+      const raw = await pathsCheckedBy(createExplorer('my-tool', { cosmiconfig: { searchStrategy: 'global', stopDir: join(root, 'bound') } }), start);
+      const bounded = await pathsCheckedBy(createExplorer('my-tool', { searchUpTo: join(root, 'bound') }), start);
+
+      expect(raw.some(outsideRoot)).toBe(true);
+      expect(bounded.length).toBeGreaterThan(0);
+      expect(bounded.filter(outsideRoot)).toEqual([]);
+    });
+
+    it('is never read for the project bound', async () => {
+      const root = makeProject({ 'package.json': '{}', 'start/placeholder.txt': '' });
+
+      const checked = await pathsCheckedBy(createExplorer('my-tool', { searchUpTo: 'project' }), join(root, 'start'));
+
+      expect(checked.length).toBeGreaterThan(0);
+      expect(checked.filter((file) => !file.startsWith(root))).toEqual([]);
+    });
+  });
+
+  describe('project', () => {
+    it('stops at the first directory containing a package.json', async () => {
+      const root = makeProject({
+        '.my-toolrc.json': rc('above-package'),
+        'package/package.json': '{}',
+        'package/nested/start/placeholder.txt': '',
+      });
+
+      expect(await createExplorer('my-tool', { searchUpTo: 'project' }).search(join(root, 'package/nested/start'))).toBeNull();
+    });
+
+    it('finds a config in a parent below the package root', async () => {
+      const root = makeProject({
+        'package.json': '{}',
+        'nested/.my-toolrc.json': rc('nested'),
+        'nested/start/placeholder.txt': '',
+      });
+
+      const result = await createExplorer('my-tool', { searchUpTo: 'project' }).search(join(root, 'nested/start'));
+
+      expect(result?.config).toEqual({ from: 'nested' });
+    });
+
+    it('finds a config beside the package.json', async () => {
+      const root = makeProject({ 'package.json': '{}', '.my-toolrc.json': rc('root'), 'start/placeholder.txt': '' });
+
+      const result = await createExplorer('my-tool', { searchUpTo: 'project' }).search(join(root, 'start'));
+
+      expect(result?.config).toEqual({ from: 'root' });
+    });
+  });
+
+  describe('construction errors', () => {
+    it('rejects a raw searchStrategy, naming both options', () => {
+      expect(() => createExplorer('my-tool', { searchUpTo: 'project', cosmiconfig: { searchStrategy: 'global' } })).toThrow(
+        /searchUpTo 'project' cannot be combined with cosmiconfig\.searchStrategy$/,
+      );
+    });
+
+    it('rejects a raw stopDir, naming both options', () => {
+      expect(() => createExplorer('my-tool', { searchUpTo: '/some/dir', cosmiconfig: { stopDir: '/other' } })).toThrow(
+        /searchUpTo '\/some\/dir' cannot be combined with cosmiconfig\.stopDir$/,
+      );
+    });
+
+    it('names every raw option it conflicts with', () => {
+      expect(() =>
+        createExplorer('my-tool', { searchUpTo: 'project', cosmiconfig: { searchStrategy: 'global', stopDir: '/other' } }),
+      ).toThrow(/cannot be combined with cosmiconfig\.searchStrategy and cosmiconfig\.stopDir$/);
+    });
+
+    it('rejects an empty string', () => {
+      expect(() => createExplorer('my-tool', { searchUpTo: '' })).toThrow(/not an empty string/);
+    });
+
+    it('still passes a raw searchStrategy and stopDir through without searchUpTo', () => {
+      expect(() => createExplorer('my-tool', { cosmiconfig: { searchStrategy: 'global', stopDir: '/some/dir' } })).not.toThrow();
+    });
   });
 });
