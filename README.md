@@ -34,6 +34,24 @@ export default {
 
 The package `shared-preset` is refused by default. See [the `extends` transform](#the-extends-transform) for how to allow it.
 
+## Searching upwards
+
+By default `search(from)` checks only the directory it is given. `searchUpTo` states how far up a search may go:
+
+```ts
+// Check the start directory and each parent, up to and including /repo.
+createExplorer('my-tool', { searchUpTo: '/repo' });
+
+// Stop at the first directory that holds a package.json or package.yaml.
+createExplorer('my-tool', { searchUpTo: 'project' });
+```
+
+The value `'project'` is the project boundary, so a directory with that name needs a path form such as `./project`. A directory is resolved against the working directory when `search` runs, and `search` throws if its start directory is not inside it.
+
+Neither form reads the user's global config directory. That is why a directory does not map to cosmiconfig's `global` strategy with `stopDir`: in cosmiconfig 9 and 10 that strategy always ends by checking the OS config directory (for example `~/.config/my-tool` or `~/Library/Preferences/my-tool`, as `config`, `config.json`, `config.ts` and similar), whatever `stopDir` is, and cosmiconfig has no option to switch that off. A config someone left there would be found by a search that was meant to stop at the repository, and the loader would evaluate it. A directory bound is therefore a walk over the parents with cosmiconfig's `none` strategy, which checks one directory per call, and `'project'` is cosmiconfig's `project` strategy, which never leaves the project.
+
+`searchUpTo` cannot be combined with `cosmiconfig.searchStrategy` or `cosmiconfig.stopDir`, and `createExplorer` throws naming both options. Leave `searchUpTo` out to pass those two options through to cosmiconfig unchanged, accepting the `global` strategy's lookup of the OS config directory. The bound is lexical: it compares resolved paths and does not follow symlinks.
+
 ## Using the pieces with plain cosmiconfig
 
 Each part works on its own with a cosmiconfig explorer you build yourself:
