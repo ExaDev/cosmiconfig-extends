@@ -1,3 +1,10 @@
+## [1.1.2](https://github.com/ExaDev/cosmiconfig-extends/compare/v1.1.1...v1.1.2) (2026-10-02)
+
+
+### Bug Fixes
+
+* **ci:** probe deploy key write access without failing when main has moved on ([1076744](https://github.com/ExaDev/cosmiconfig-extends/commit/1076744d4e1c11688eeee6e8d1bfc4ae1b7a52f5))
+
 ## [1.1.1](https://github.com/ExaDev/cosmiconfig-extends/compare/v1.1.0...v1.1.1) (2026-10-02)
 
 # [1.1.0](https://github.com/ExaDev/cosmiconfig-extends/compare/v1.0.1...v1.1.0) (2026-10-01)
