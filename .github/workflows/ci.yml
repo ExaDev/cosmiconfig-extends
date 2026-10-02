@@ -203,10 +203,14 @@ jobs:
       pull-requests: write # to comment on released pull requests
       id-token: write # OIDC identity for npm trusted publishing and provenance (no NPM_TOKEN)
     steps:
+      # The default GITHUB_TOKEN cannot bypass a repository ruleset (GitHub does not support naming the github-actions[bot] identity as a bypass actor), so semantic-release's release commit and tag push needs its own bypass identity. A deploy key with write access, listed as a DeployKey bypass actor on the main ruleset, is the lightest one: repository-scoped, with no GitHub App installation and no personal or organisation-admin credential. checkout@v7 writes the key into core.sshCommand, where later steps' git commands find it, only when persist-credentials is true (with it false the key exists only as a step-scoped GIT_SSH_COMMAND export that no later step inherits, so semantic-release finds no key for the SSH repositoryUrl, falls back to an https URL with GITHUB_TOKEN embedded, and the ruleset rejects that push). release.config.ts's SSH-form repositoryUrl selects the SSH push; persisting credentials arms it.
       - uses: actions/checkout@v7
         with:
           # semantic-release analyses the full commit history since the last release.
           fetch-depth: 0
+          ssh-key: ${{ secrets.RELEASE_DEPLOY_KEY }}
+          # true on purpose (see the comment above): false leaves semantic-release's push with no SSH key, and the ruleset rejects the GITHUB_TOKEN fallback. The persisted token extraheader is inert for this push, which goes to the SSH URL, not an https:// one.
+          persist-credentials: true
       - uses: pnpm/action-setup@v6
       - uses: actions/setup-node@v7
         with:
