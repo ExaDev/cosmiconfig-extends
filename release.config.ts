@@ -29,7 +29,7 @@ export const commitTypes: readonly CommitType[] = [
  */
 const config: Options = {
   branches: ['main'],
-  // Deliberately the SSH form, not package.json's own git+https:// repository field (that field stays https://; it is public consumer-facing metadata, unrelated to how this release pushes). semantic-release only embeds an x-access-token:$GITHUB_TOKEN@ credential into an https:// repositoryUrl, and the default GITHUB_TOKEN it would embed cannot bypass main's branch ruleset, so the push is rejected. An SSH URL skips that embedding, so the push authenticates with the deploy key the Release job's checkout wires into core.sshCommand (checkout@v7 writes that config only while persist-credentials is true; see .github/workflows/ci.yml), which the ruleset lists as a DeployKey bypass actor.
+  // Deliberately the SSH form, not package.json's own git+https:// repository field (that field stays https://; it is public consumer-facing metadata, unrelated to how this release pushes). semantic-release first tries to push to the repositoryUrl as given, and only if that fails rewrites it to https with the GITHUB_TOKEN embedded; the default GITHUB_TOKEN cannot bypass main's branch ruleset, so that fallback push would be rejected. The push as given authenticates with the deploy key the Release job provisions through GIT_SSH_COMMAND for the Release step alone (see .github/workflows/ci.yml), which the ruleset lists as a DeployKey bypass actor.
   repositoryUrl: 'git@github.com:ExaDev/cosmiconfig-extends.git',
   plugins: [
     [
