@@ -24,11 +24,11 @@ jobs:
     runs-on: ${{ fromJson(needs.determine-runner.outputs.selected-runner) }}
     timeout-minutes: 10
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           fetch-depth: 0
-      - uses: pnpm/action-setup@v6
-      - uses: actions/setup-node@v7
+      - uses: pnpm/action-setup@0977fd99725f1db4007ccb2928dbb4e90d06cc86 # v6.0.10
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
         with:
           node-version: '22'
           cache: pnpm
@@ -50,13 +50,13 @@ jobs:
     runs-on: ${{ fromJson(needs.determine-runner.outputs.selected-runner) }}
     timeout-minutes: 10
     steps:
-      - uses: actions/checkout@v7
-      - uses: pnpm/action-setup@v6
-      - uses: actions/setup-node@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: pnpm/action-setup@0977fd99725f1db4007ccb2928dbb4e90d06cc86 # v6.0.10
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
         with:
           node-version: '22'
           cache: pnpm
-      - uses: actions/cache@v6
+      - uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
           path: .eslintcache
           # eslint.config.ts and pnpm-lock.yaml both invalidate the cache: a rule change or a dependency bump can change lint results even for files whose own content did not change.
@@ -72,9 +72,9 @@ jobs:
     runs-on: ${{ fromJson(needs.determine-runner.outputs.selected-runner) }}
     timeout-minutes: 10
     steps:
-      - uses: actions/checkout@v7
-      - uses: pnpm/action-setup@v6
-      - uses: actions/setup-node@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: pnpm/action-setup@0977fd99725f1db4007ccb2928dbb4e90d06cc86 # v6.0.10
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
         with:
           node-version: '22'
           cache: pnpm
@@ -93,16 +93,16 @@ jobs:
     runs-on: ${{ fromJson(needs.determine-runner.outputs.selected-runner) }}
     timeout-minutes: 60
     steps:
-      - uses: actions/checkout@v7
-      - uses: pnpm/action-setup@v6
-      - uses: actions/setup-node@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: pnpm/action-setup@0977fd99725f1db4007ccb2928dbb4e90d06cc86 # v6.0.10
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
         with:
           node-version: '22'
           cache: pnpm
       - run: pnpm install --frozen-lockfile
       # Content-diff based (Stryker's IncrementalDiffer text-diffs stored against current source, never hash, mtime or git ref), so restoring from an unrelated prior run is always safe: a mismatch only means bigger diffs and more reruns, never a wrongly skipped mutant.
       - name: Restore Stryker incremental result cache
-        uses: actions/cache/restore@v6
+        uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
           path: reports/stryker-incremental.json
           key: stryker-incremental-${{ github.run_id }}
@@ -112,7 +112,7 @@ jobs:
       - run: pnpm test:mutation${{ github.ref == 'refs/heads/main' && ' --force' || '' }}
       - name: Save Stryker incremental result cache
         if: always()
-        uses: actions/cache/save@v6
+        uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
           path: reports/stryker-incremental.json
           key: stryker-incremental-${{ github.run_id }}
@@ -133,16 +133,16 @@ jobs:
           - { node: '24', cosmiconfig: '9' }
           - { node: '24', cosmiconfig: '10' }
     steps:
-      - uses: actions/checkout@v7
-      - uses: pnpm/action-setup@v6
-      - uses: actions/setup-node@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: pnpm/action-setup@0977fd99725f1db4007ccb2928dbb4e90d06cc86 # v6.0.10
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
         with:
           node-version: '22'
           cache: pnpm
       - run: pnpm install --frozen-lockfile
       - run: pnpm build
       - run: pnpm pack --pack-destination "$RUNNER_TEMP/pack"
-      - uses: actions/setup-node@v7
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
         with:
           node-version: ${{ matrix.node }}
       - name: Install the tarball into a scratch project
@@ -204,14 +204,14 @@ jobs:
       id-token: write # OIDC identity for npm trusted publishing and provenance (no NPM_TOKEN)
     steps:
       # The default GITHUB_TOKEN cannot bypass a repository ruleset (GitHub does not support naming the github-actions[bot] identity as a bypass actor), so semantic-release's release commit and tag push needs its own bypass identity. A deploy key with write access, listed as a DeployKey bypass actor on the main ruleset, is the lightest one: repository-scoped, with no GitHub App installation and no personal or organisation-admin credential. Because the key can push straight to main, it exists on the runner only for the last two steps: checkout does not receive it, so it is not in git config or on disk while the setup actions, the install and the npm upgrade run. That is the whole gain. Those earlier steps can still change PATH, the environment or installed code (node_modules, global npm) that later runs with the key present, so this narrows exposure to code that merely reads the secret when it runs and does not isolate the key from a compromised earlier step. Full isolation needs the install separated from the credential.
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           # semantic-release analyses the full commit history since the last release.
           fetch-depth: 0
           # The deploy key is deliberately not passed here, and credentials are not persisted: checkout fetches with the job's own token and then removes it, leaving nothing in git config for later steps.
           persist-credentials: false
-      - uses: pnpm/action-setup@v6
-      - uses: actions/setup-node@v7
+      - uses: pnpm/action-setup@0977fd99725f1db4007ccb2928dbb4e90d06cc86 # v6.0.10
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
         with:
           node-version: '22'
           cache: pnpm
