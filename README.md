@@ -154,6 +154,8 @@ CI also runs `pnpm exec publint` and `pnpm exec attw --pack` after the build. It
 
 Both cosmiconfig majors are installed as dev dependencies under the aliases `cosmiconfig-9` and `cosmiconfig-10`, so `src/interop.integration.test.ts` exercises the loader and transform against each. `test/source` holds tests relocated from the project this package was extracted from, together with the domain they exercise, adapted onto the public API. They are the compatibility check for `extends` semantics.
 
+CI also lints the workflows themselves with [actionlint](https://github.com/rhysd/actionlint) (and the shellcheck it runs on every `run:` script) and [zizmor](https://docs.zizmor.sh), each at a pinned version and configured in `.github/actionlint.yaml` and `.github/zizmor.yml`; both are part of the Required Checks status.
+
 CI selects its runner with `ExaDev/runner-fallback-action` (self-hosted fleet first, Blacksmith as fallback).
 
 ## Releases
