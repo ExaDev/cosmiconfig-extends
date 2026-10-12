@@ -274,6 +274,8 @@ jobs:
     # Deliberately a GitHub-hosted runner, not the resolved one: npm trusted publishing only works from GitHub-hosted runners, so the OIDC token exchange cannot happen on the self-hosted fleet or Blacksmith.
     runs-on: ubuntu-latest
     timeout-minutes: 15
+    # The deploy key lives in this environment, whose deployment branches are limited to main, so no other branch's workflow can read it.
+    environment: release
     permissions:
       contents: write # to push the release commit and tag and create the GitHub Release
       issues: write # to comment on released issues
