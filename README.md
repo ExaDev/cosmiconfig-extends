@@ -1,5 +1,7 @@
 # cosmiconfig-extends
 
+[![GitHub](https://img.shields.io/badge/GitHub-181717?logo=github&logoColor=white)](https://github.com/ExaDev/cosmiconfig-extends) [![npm](https://img.shields.io/badge/npm-CB3837?logo=npm&logoColor=white)](https://www.npmjs.com/package/cosmiconfig-extends) [![Release](https://img.shields.io/github/v/release/ExaDev/cosmiconfig-extends)](https://github.com/ExaDev/cosmiconfig-extends/releases/latest) [![CI](https://img.shields.io/github/actions/workflow/status/ExaDev/cosmiconfig-extends/ci.yml?branch=main)](https://github.com/ExaDev/cosmiconfig-extends/actions)
+
 A jiti-backed TypeScript loader and a trust-gated `extends` transform for [cosmiconfig](https://github.com/cosmiconfig/cosmiconfig) 9 and 10, with configurable merging and [Standard Schema](https://standardschema.dev) validation.
 
 ## Getting started
