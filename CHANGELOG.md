@@ -1,10 +1,28 @@
 ## [1.1.6](https://github.com/ExaDev/cosmiconfig-extends/compare/v1.1.5...v1.1.6) (2026-10-12)
 
+### Continuous Integration
+
+* read the release deploy key from a main-only environment ([52ded96](https://github.com/ExaDev/cosmiconfig-extends/commit/52ded96bde70bd45f088d545bb62abc26e6dbc62))
+
 ## [1.1.5](https://github.com/ExaDev/cosmiconfig-extends/compare/v1.1.4...v1.1.5) (2026-10-03)
+
+### Continuous Integration
+
+* let Dependabot propose npm updates after a week's cooldown ([851040b](https://github.com/ExaDev/cosmiconfig-extends/commit/851040b0cd5e17b215c00b4050ef2c9e4ffa7201))
+* lint workflows with actionlint and zizmor ([ab6f37d](https://github.com/ExaDev/cosmiconfig-extends/commit/ab6f37d0d487867b40f9ba30b18a0224656ba5e8))
+* stop persisting checkout credentials and expanding needs into shell ([b533a2c](https://github.com/ExaDev/cosmiconfig-extends/commit/b533a2ca30591f13fca18d4e9241687c1ff06d46))
 
 ## [1.1.4](https://github.com/ExaDev/cosmiconfig-extends/compare/v1.1.3...v1.1.4) (2026-10-03)
 
+### Continuous Integration
+
+* pin third-party actions by commit SHA ([5a73667](https://github.com/ExaDev/cosmiconfig-extends/commit/5a73667fdfdfaab4940339b2e190d227eb869b43))
+
 ## [1.1.3](https://github.com/ExaDev/cosmiconfig-extends/compare/v1.1.2...v1.1.3) (2026-10-02)
+
+### Documentation
+
+* describe the release process in the README ([03b6a99](https://github.com/ExaDev/cosmiconfig-extends/commit/03b6a990c63543f2c38b07e195a2036094fb3879))
 
 ## [1.1.2](https://github.com/ExaDev/cosmiconfig-extends/compare/v1.1.1...v1.1.2) (2026-10-02)
 
@@ -15,6 +33,10 @@
 
 ## [1.1.1](https://github.com/ExaDev/cosmiconfig-extends/compare/v1.1.0...v1.1.1) (2026-10-02)
 
+### Continuous Integration
+
+* push the release over SSH with a deploy key ([9e60fb9](https://github.com/ExaDev/cosmiconfig-extends/commit/9e60fb9482dfd56c0d18a6196b7ad70300e357c4))
+
 # [1.1.0](https://github.com/ExaDev/cosmiconfig-extends/compare/v1.0.1...v1.1.0) (2026-10-01)
 
 
@@ -23,6 +45,10 @@
 * **explorer:** add a searchUpTo option for bounded upward search ([fc99e87](https://github.com/ExaDev/cosmiconfig-extends/commit/fc99e87c1c20d49e1cbe262ecc9adbbd39a479f1))
 
 ## [1.0.1](https://github.com/ExaDev/cosmiconfig-extends/compare/v1.0.0...v1.0.1) (2026-09-29)
+
+### Continuous Integration
+
+* run mutation testing on manual dispatch only ([8345ff3](https://github.com/ExaDev/cosmiconfig-extends/commit/8345ff3504fe2229bc26f4b497ea972d8dc97a0d))
 
 # 1.0.0 (2026-09-29)
 
