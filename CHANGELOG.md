@@ -1,3 +1,9 @@
+## [1.1.8](https://github.com/ExaDev/cosmiconfig-extends/compare/v1.1.7...v1.1.8) (2026-10-29)
+
+### Documentation
+
+* add the standard badge row to the README ([1474a55](https://github.com/ExaDev/cosmiconfig-extends/commit/1474a55c27c5169f1d8b5caf297256f954c4cbad))
+
 ## [1.1.7](https://github.com/ExaDev/cosmiconfig-extends/compare/v1.1.6...v1.1.7) (2026-10-29)
 
 ### Bug Fixes
