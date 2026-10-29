@@ -1,3 +1,13 @@
+## [1.1.7](https://github.com/ExaDev/cosmiconfig-extends/compare/v1.1.6...v1.1.7) (2026-10-29)
+
+### Bug Fixes
+
+* list every commit type in the release notes ([430d140](https://github.com/ExaDev/cosmiconfig-extends/commit/430d1404f7061b2c90001e2870ada31fde1200c9))
+
+### Documentation
+
+* list the commits behind each release that had an empty changelog entry ([0a8c555](https://github.com/ExaDev/cosmiconfig-extends/commit/0a8c5553c0c67e8c9c363c97a2606b7df3bd75ea))
+
 ## [1.1.6](https://github.com/ExaDev/cosmiconfig-extends/compare/v1.1.5...v1.1.6) (2026-10-12)
 
 ### Continuous Integration
