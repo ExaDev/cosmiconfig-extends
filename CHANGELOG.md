@@ -1,3 +1,9 @@
+## [1.1.9](https://github.com/ExaDev/cosmiconfig-extends/compare/v1.1.8...v1.1.9) (2026-11-23)
+
+### Bug Fixes
+
+* pin the runner-fallback action to the version that sends public repositories to hosted runners ([c06ca93](https://github.com/ExaDev/cosmiconfig-extends/commit/c06ca9319e868a322795e3865e6cbdc0d4e334d0))
+
 ## [1.1.8](https://github.com/ExaDev/cosmiconfig-extends/compare/v1.1.7...v1.1.8) (2026-10-29)
 
 ### Documentation
